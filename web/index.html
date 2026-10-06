@@ -1,212 +1,1083 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>project-context-system · your repo, knowable from files</title>
-<meta name="description" content="A drop-in skill that turns any repository into a self-maintaining markdown context wiki for coding agents. One command: ctx setup. Zero dependencies.">
-<meta property="og:title" content="project-context-system">
-<meta property="og:description" content="The model isn't your bottleneck. Your repo is. Compiled context for coding agents, enforced by tooling.">
-<meta property="og:type" content="website">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='14' fill='%230F172A'/><text x='16' y='72' font-family='monospace' font-size='58' fill='%2338BDF8'>c<tspan fill='%23F8FAFC'>tx</tspan></text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-<a class="skip" href="#main">Skip to content</a>
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>project-context-system: context is compiled, not retrieved</title>
+    <meta
+      name="description"
+      content="An open source skill that turns any repository into a self-maintaining markdown wiki. Coding agents read the wiki instead of re-exploring the codebase. One command: ctx setup. Zero dependencies. MIT."
+    />
+    <meta name="theme-color" content="#f6f5f1" />
+    <link rel="canonical" href="https://anshroshan.github.io/project-context-system/" />
+    <meta property="og:title" content="project-context-system" />
+    <meta
+      property="og:description"
+      content="Context is compiled, not retrieved. The model is not your bottleneck. Your repo is."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://anshroshan.github.io/project-context-system/" />
 
-<header class="nav">
-  <div class="nav-in">
-    <a class="wordmark" href="#top" aria-label="project-context-system home"><span class="ctx">c</span>tx<span class="slash">/</span><span class="wm-sub">project-context-system</span></a>
-    <nav aria-label="sections">
-      <a href="#ladder">Ladder</a>
-      <a href="#cli">CLI</a>
-      <a href="#teams">Teams</a>
-      <a href="#install">Install</a>
-    </nav>
-    <div class="nav-cta">
-      <a class="btn btn-ghost" href="https://github.com/AnshRoshan/project-context-system" rel="noopener">GitHub</a>
-      <a class="btn btn-solid" href="https://github.com/AnshRoshan/project-context-system#readme">Docs</a>
+    <script>
+      (function () {
+        var r = document.documentElement;
+        r.className += " js";
+        try {
+          var s = localStorage.getItem("pcs-theme");
+          var m = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var t = s === "light" || s === "dark" ? s : m ? "dark" : "light";
+          r.dataset.theme = t;
+          r.style.colorScheme = t;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", t === "dark" ? "#100f0c" : "#f6f5f1");
+        } catch (e) {}
+      })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-[3px] focus:bg-fg focus:px-4 focus:py-2 focus:font-mono focus:text-xs focus:text-bg"
+      >Skip to content</a
+    >
+
+    <div class="fixed inset-x-0 top-0 z-50 h-[2px]" aria-hidden="true">
+      <div id="scroll-meter" class="h-full w-full bg-accent-line"></div>
     </div>
-  </div>
-</header>
 
-<main id="main">
+    <!-- ================================================================= masthead
+         The masthead is the document's own title block, not a nav bar. -->
+    <header class="sticky top-0 z-40 border-b border-line bg-bg">
+      <div class="mx-auto flex h-14 max-w-[1560px] items-center gap-4 px-5 lg:px-8">
+        <a href="#top" class="flex shrink-0 items-baseline gap-2.5 no-underline">
+          <span class="font-mono text-[13px] font-medium tracking-tight text-fg">ctx</span>
+          <span class="hidden font-mono text-[12px] text-fg-3 sm:inline">project-context-system</span>
+        </a>
 
-<!-- HERO: asymmetric editorial grid; copy left, live wiki graph right -->
-<section class="hero" id="top">
-  <div class="hero-grid">
-    <div class="hero-copy">
-      <p class="eyebrow mono">compiled context for coding agents</p>
-      <h1>Your repo, <em>knowable</em> from files.</h1>
-      <p class="lede">The model isn't your bottleneck. Your repo is. This skill makes your agent write down what it learns, once, into a markdown wiki. Every later session starts already knowing the project.</p>
-      <div class="install-line" id="install">
-        <code class="mono" id="install-cmd">node &lt;clone&gt;/scripts/ctx.mjs setup</code>
-        <button class="btn btn-copy" id="copy-install" type="button" aria-label="Copy the setup command">copy</button>
+        <nav class="ml-auto hidden items-center gap-5 xl:flex" aria-label="Sections">
+          <a data-spy="thesis" class="running text-fg-3 no-underline hover:text-fg" href="#thesis">thesis</a>
+          <a data-spy="cost" class="running text-fg-3 no-underline hover:text-fg" href="#cost">cost</a>
+          <a data-spy="layers" class="running text-fg-3 no-underline hover:text-fg" href="#layers">layers</a>
+          <a data-spy="loop" class="running text-fg-3 no-underline hover:text-fg" href="#loop">loop</a>
+          <a data-spy="enforcement" class="running text-fg-3 no-underline hover:text-fg" href="#enforcement">enforcement</a>
+          <a data-spy="cli" class="running text-fg-3 no-underline hover:text-fg" href="#cli">cli</a>
+        </nav>
+
+        <div class="ml-auto flex items-center gap-2.5 xl:ml-6">
+          <span
+            id="release-chip"
+            class="hidden rounded-[3px] border border-line px-2 py-1 font-mono text-[11px] text-fg-3 sm:block"
+            >v2.4.1</span
+          >
+          <div data-island="theme"></div>
+          <a
+            href="https://github.com/AnshRoshan/project-context-system"
+            class="rounded-[3px] bg-fg px-3.5 py-2 font-mono text-[11.5px] font-medium text-bg no-underline transition-opacity duration-150 hover:opacity-85"
+            >GitHub</a
+          >
+        </div>
       </div>
-      <p class="hero-note" id="copy-note" role="status">One command. Any language. Greenfield or brownfield. Re-run any time: it upgrades in place.</p>
-      <ul class="badges" aria-label="project status">
-        <li><a href="https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml"><img src="https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml/badge.svg" alt="CI status: passing on ubuntu, macOS and windows"></a></li>
-        <li><a href="https://github.com/AnshRoshan/project-context-system/releases"><img src="https://img.shields.io/github/v/release/AnshRoshan/project-context-system?color=38BDF8" alt="Latest release v2.4.1"></a></li>
-        <li><span class="badge mono">0 dependencies</span></li>
-        <li><span class="badge mono">47/47 tests</span></li>
-      </ul>
-    </div>
-    <figure class="hero-graph" aria-label="Interactive diagram of the project wiki. The graph is decorative; the same information appears in the legend below.">
-      <div id="wiki-graph" role="img" aria-label="Force-directed graph of context wiki pages linked to AGENTS.md. Hover nodes for their summary. Drag to explore."></div>
-      <figcaption>
-        <span class="dot dot-page"></span> wiki page
-        <span class="dot dot-code"></span> covered code
-        <span class="dot dot-rule"></span> path-gated rule
-        <span class="hint">hover · drag · click to pin</span>
-      </figcaption>
-    </figure>
-  </div>
-</section>
+      <nav class="border-t border-line xl:hidden" aria-label="Sections, compact">
+        <ul class="mx-auto flex max-w-[1560px] list-none gap-5 overflow-x-auto px-5 py-2 font-mono text-[11px] tracking-wide">
+          <li><a data-spy="thesis" class="whitespace-nowrap text-fg-3 no-underline hover:text-fg" href="#thesis">thesis</a></li>
+          <li><a data-spy="cost" class="whitespace-nowrap text-fg-3 no-underline hover:text-fg" href="#cost">cost</a></li>
+          <li><a data-spy="layers" class="whitespace-nowrap text-fg-3 no-underline hover:text-fg" href="#layers">layers</a></li>
+          <li><a data-spy="loop" class="whitespace-nowrap text-fg-3 no-underline hover:text-fg" href="#loop">loop</a></li>
+          <li><a data-spy="enforcement" class="whitespace-nowrap text-fg-3 no-underline hover:text-fg" href="#enforcement">enforcement</a></li>
+          <li><a data-spy="cli" class="whitespace-nowrap text-fg-3 no-underline hover:text-fg" href="#cli">cli</a></li>
+          <li><a data-spy="install" class="whitespace-nowrap text-fg-3 no-underline hover:text-fg" href="#install">install</a></li>
+        </ul>
+      </nav>
+    </header>
 
-<!-- PROBLEM: interactive cost comparison -->
-<section class="section" id="cost">
-  <div class="sec-head">
-    <p class="eyebrow mono">the cost of forgetting</p>
-    <h2>Same model. Two repos. Different worlds.</h2>
-    <p class="sec-lede">Without a wiki, every session re-explores the codebase from zero. With one, orientation is a few thousand tokens of files written once, at change time. Drag the session counter.</p>
-  </div>
-  <div class="cost-grid">
-    <div class="chart-card">
-      <svg id="cost-chart" viewBox="0 0 640 300" role="img" aria-label="Line chart comparing tokens spent per session: re-exploration stays flat and high, wiki orientation stays low."></svg>
-      <div class="chart-legend"><span class="mono sw sw-bad">re-exploring the repo</span><span class="mono sw sw-good">reading the wiki</span></div>
-    </div>
-    <div class="cost-readout">
-      <label class="slider-label" for="session-slider">Session number: <output class="mono" id="session-out">12</output></label>
-      <input type="range" id="session-slider" min="1" max="40" value="12" step="1">
-      <dl class="cost-stats">
-        <div><dt>chatbot repo</dt><dd class="mono stat-bad" id="stat-cold"></dd></div>
-        <div><dt>this system</dt><dd class="mono stat-good" id="stat-warm"></dd></div>
-        <div><dt>spent re-deriving by session 40</dt><dd class="mono" id="stat-total"></dd></div>
-      </dl>
-      <p class="cost-note">The cold line is real: agents grep, read, and re-reason the same facts every session. The warm line is the same task after <code class="mono">ctx brief</code> routes it to three TL;DRs.</p>
-    </div>
-  </div>
-</section>
+    <main id="main">
+      <!-- ================================================================== hero -->
+      <section id="top" class="border-b border-line">
+        <div class="mx-auto max-w-[1560px] px-5 pt-14 pb-16 lg:px-8 lg:pt-20 lg:pb-24">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-14">
+            <div class="lg:col-span-5">
+              <!-- No kicker. The heading carries its own weight. -->
+              <h1 class="text-[clamp(3.2rem,7.6vw,6rem)] text-fg">
+                Context is<br /><em class="text-accent">compiled</em>,<br />
+                <span class="text-fg-3">not retrieved.</span>
+              </h1>
 
-<!-- LADDER: the four rungs, interactive -->
-<section class="section" id="ladder">
-  <div class="sec-head">
-    <p class="eyebrow mono">architecture</p>
-    <h2>Stop asking what goes in AGENTS.md. Decide what loads <em>when</em>.</h2>
-  </div>
-  <div class="ladder-grid" id="ladder-tabs">
-    <div class="rungs" role="tablist" aria-label="The context ladder">
-      <button role="tab" aria-selected="true" class="rung is-active" id="rung-1" data-rung="0"><span class="rung-n mono">01</span> every session<span class="rung-sub">AGENTS.md ≤120 lines, routed</span></button>
-      <button role="tab" aria-selected="false" class="rung" id="rung-2" data-rung="1"><span class="rung-n mono">02</span> path-gated<span class="rung-sub">rules load only for matching files</span></button>
-      <button role="tab" aria-selected="false" class="rung" id="rung-3" data-rung="2"><span class="rung-n mono">03</span> on invoke<span class="rung-sub">skill references, just in time</span></button>
-      <button role="tab" aria-selected="false" class="rung" id="rung-4" data-rung="3"><span class="rung-n mono">04</span> isolated<span class="rung-sub">subagents with their own memory</span></button>
-    </div>
-    <div class="rung-body" role="tabpanel" aria-live="polite">
-      <h3 id="rung-title"></h3>
-      <p id="rung-text"></p>
-      <pre class="mono" id="rung-code"></pre>
-    </div>
-  </div>
-</section>
+              <p class="mt-9 max-w-[46ch] text-[1.1875rem] leading-[1.55] text-fg-2">
+                The model is not your bottleneck. Your repository is. This skill makes the agent
+                write down what it learns, once, at change time, into a markdown wiki. Every later
+                session starts already knowing the project.
+              </p>
 
-<!-- PIPELINE: raw -> wiki -> schema -->
-<section class="section" id="pipeline">
-  <div class="sec-head">
-    <p class="eyebrow mono">how it holds</p>
-    <h2>Documentation is part of the diff. Tooling checks it.</h2>
-    <p class="sec-lede">Code changed without updating the pages that describe it blocks the session from ending. Not a policy. A hook.</p>
-  </div>
-  <div class="pipe" id="pipe">
-    <button class="pipe-node" data-i="0"><span class="mono pipe-k">raw</span><span>code + <code class="mono">context/raw/</code></span><small>immutable truth</small></button>
-    <svg class="pipe-arrow" viewBox="0 0 48 16" aria-hidden="true"><path d="M0 8h40m0 0-6-6m6 6-6 6" /></svg>
-    <button class="pipe-node" data-i="1"><span class="mono pipe-k">wiki</span><span><code class="mono">context/**</code> pages</span><small>agent-owned, human-reviewed</small></button>
-    <svg class="pipe-arrow" viewBox="0 0 48 16" aria-hidden="true"><path d="M0 8h40m0 0-6-6m6 6-6 6" /></svg>
-    <button class="pipe-node" data-i="2"><span class="mono pipe-k">schema</span><span><code class="mono">AGENTS.md</code> + router</span><small>how to maintain it</small></button>
-  </div>
-  <p class="pipe-detail" id="pipe-detail" role="status"></p>
-</section>
+              <p class="mt-5 max-w-[46ch] text-[1.0625rem] leading-[1.6] text-fg-3">
+                Same model. Same prompts. One developer gets an agent that re-explores the codebase
+                every session. The other gets one that opens three files and starts work.
+              </p>
 
-<!-- CLI: real terminal, clickable commands -->
-<section class="section" id="cli">
-  <div class="sec-head">
-    <p class="eyebrow mono">the surface</p>
-    <h2>One file. Sixteen commands. Your project carries it forever.</h2>
-  </div>
-  <div class="term-wrap">
-    <div class="term" id="term" aria-label="Terminal demo. Pick a command to run it." role="textbox" aria-readonly="true" tabindex="0">
-      <div class="term-bar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="term-title mono">your-project: ctx</span></div>
-      <pre class="term-body mono" id="term-out"></pre>
-    </div>
-    <nav class="cmd-chips" aria-label="Demo commands">
-      <button class="chip is-active mono" data-cmd="brief">brief</button>
-      <button class="chip mono" data-cmd="task">task start</button>
-      <button class="chip mono" data-cmd="impact">impact</button>
-      <button class="chip mono" data-cmd="archive">archive</button>
-      <button class="chip mono" data-cmd="doctor">doctor</button>
-    </nav>
-  </div>
-  <p class="cli-more">…plus <code class="mono">setup detect tools rules stale lint index coverage log new stamp status task archive install hook</code>: all with <code class="mono">--json</code> for CI.</p>
-</section>
+              <div class="mt-10 flex flex-wrap items-center gap-3">
+                <a
+                  href="#install"
+                  class="rounded-[3px] bg-accent-solid px-5 py-3 font-mono text-[13px] font-medium text-on-accent no-underline transition-opacity duration-150 hover:opacity-90"
+                  >Install in 60 seconds</a
+                >
+                <a
+                  href="https://github.com/AnshRoshan/project-context-system"
+                  class="rounded-[3px] border border-line-strong px-5 py-3 font-mono text-[13px] font-medium text-fg no-underline transition-colors duration-150 hover:border-fg"
+                  >Read the source</a
+                >
+              </div>
 
-<!-- LEDGER + TEAMS -->
-<section class="section" id="teams">
-  <div class="sec-head">
-    <p class="eyebrow mono">ten people, ten features</p>
-    <h2>One unit. One branch. One owner.</h2>
-    <p class="sec-lede">The ledger is the only place a unit's state lives. Collisions from parallel branches surface as lint errors, not arguments. Growth rotates into dated archives. Watch it.</p>
-  </div>
-  <div class="ledger" id="ledger">
-    <div class="lcol" data-col="next"><h4 class="mono">Up next</h4><ul id="lc-next"></ul></div>
-    <div class="lcol lcol-now" data-col="now"><h4 class="mono">In progress <span class="one mono">max 1</span></h4><ul id="lc-now"></ul></div>
-    <div class="lcol" data-col="blocked"><h4 class="mono">Blocked</h4><ul id="lc-blocked"></ul></div>
-    <div class="lcol" data-col="done"><h4 class="mono">Completed</h4><ul id="lc-done"></ul></div>
-  </div>
-  <div class="ledger-ctl">
-    <button class="btn btn-solid" id="ledger-run" type="button">run the week</button>
-    <p class="mono ledger-msg" id="ledger-msg" role="status">press to simulate two branches merging into a claimed number</p>
-  </div>
-  <div class="proof-row">
-    <div class="proof"><strong>Dogfooded</strong><span>this repo runs its own context system; lint 0 errors, 0 warnings</span></div>
-    <div class="proof"><strong>Delegates</strong><span>finds graphify, ctags, aider, dependency-cruiser and hands them the code-map work</span></div>
-    <div class="proof"><strong>No leakage</strong><span>your project gets pages about your project; no version chatter, test-guarded</span></div>
-  </div>
-</section>
+              <dl class="mt-12 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-7 sm:grid-cols-4">
+                <div>
+                  <dt class="running text-fg-3">release</dt>
+                  <dd class="mt-1.5 font-mono text-[15px] font-medium text-fg">v2.4.1</dd>
+                </div>
+                <div>
+                  <dt class="running text-fg-3">tests</dt>
+                  <dd class="mt-1.5 font-mono text-[15px] font-medium text-fg">47 / 47</dd>
+                </div>
+                <div>
+                  <dt class="running text-fg-3">dependencies</dt>
+                  <dd class="mt-1.5 font-mono text-[15px] font-medium text-fg">0</dd>
+                </div>
+                <div>
+                  <dt class="running text-fg-3">license</dt>
+                  <dd class="mt-1.5 font-mono text-[15px] font-medium text-fg">MIT</dd>
+                </div>
+              </dl>
+              <p class="mt-4 font-mono text-[11.5px] text-fg-3">
+                Node 18 or newer. Passes on ubuntu, macOS and windows.
+              </p>
+            </div>
 
-<!-- FINAL CTA -->
-<section class="section cta" id="start">
-  <div class="cta-grid">
-    <div>
-      <h2>Give your agent the repo, not the rerun.</h2>
-      <p class="sec-lede">Paste the link to your agent, or run the two commands. Setup detects your stack, scaffolds the wiki, drafts the codebase map on brownfield, and self-checks with twelve doctor checks.</p>
-    </div>
-    <ol class="steps mono">
-      <li><span>1</span><code>git clone https://github.com/AnshRoshan/project-context-system</code></li>
-      <li><span>2</span><code>node project-context-system/scripts/ctx.mjs install</code></li>
-      <li><span>3</span><code>cd your-project &amp;&amp; ctx setup</code></li>
-    </ol>
-  </div>
-  <div class="cta-links">
-    <a class="btn btn-solid" href="https://github.com/AnshRoshan/project-context-system">Star on GitHub</a>
-    <a class="btn btn-ghost" href="https://github.com/AnshRoshan/project-context-system/blob/main/INSTALL.md">Install guide</a>
-    <a class="btn btn-ghost" href="https://github.com/AnshRoshan/project-context-system/releases">Release notes</a>
-  </div>
-</section>
-</main>
+            <!-- The mechanism, demonstrated in the first viewport. -->
+            <div class="lg:col-span-7">
+              <div data-island="page">
+                <div class="console overflow-hidden">
+                  <div class="border-b border-con-line px-5 py-3">
+                    <span class="running text-con-fg-2">context/codebase/modules/auth.md</span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-12">
+                    <pre class="border-b border-con-line px-5 py-4 font-mono text-[11.5px] leading-[1.85] text-con-fg-2 sm:col-span-5 sm:border-b-0 sm:border-r"><code>---
+title: Authentication
+type: module
+status: active
+covers: src/auth/**
+confidence: verified
+updated: 2026-10-02
+---</code></pre>
+                    <div class="px-5 py-4 sm:col-span-7">
+                      <p class="running text-con-fg-2">TL;DR</p>
+                      <ul class="mt-2.5 space-y-1.5 text-[13px] leading-snug text-con-fg">
+                        <li>Session tokens are httpOnly cookies with a 15 minute lifetime.</li>
+                        <li>The refresh token rotates on every use. The old one is void at once.</li>
+                        <li>Never log a token payload. Lint catches token-shaped strings.</li>
+                      </ul>
+                      <dl class="mt-5 space-y-3 border-t border-con-line pt-4">
+                        <div>
+                          <dt class="running text-con-fg-2">Contract</dt>
+                          <dd class="mt-1 text-[12.5px] leading-relaxed text-con-fg">POST /auth/login returns 200 and two cookies. It returns 429 after 5 attempts in 60 seconds.</dd>
+                        </div>
+                        <div>
+                          <dt class="running text-con-fg-2">Invariant</dt>
+                          <dd class="mt-1 text-[12.5px] leading-relaxed text-con-fg">A revoked session voids its refresh token in the same request. There is no grace window.</dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </div>
+                  <p class="border-t border-con-line px-5 py-3 text-[12.5px] leading-snug text-con-fg-2">
+                    This is one page of the wiki. About 820 tokens. With JavaScript it moves through
+                    a real change: a commit lands, git dates the page past the code, ctx impact fires,
+                    the TL;DR gains the invariant, then the page is stamped.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<footer class="foot">
-  <p class="mono">project-context-system · MIT · built by <a href="https://github.com/AnshRoshan">Ansh Roshan</a></p>
-  <nav aria-label="footer">
-    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/SKILL.md">SKILL.md</a>
-    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/references/operations.md">operations</a>
-    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/references/multi-user.md">multi-user</a>
-    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/CHANGELOG.md">changelog</a>
-  </nav>
-</footer>
+      <!-- ================================================================ thesis
+           A quiet reading passage. It earns the density that follows. -->
+      <section id="thesis" class="scroll-mt-20 border-b border-line">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="mx-auto max-w-[46rem]">
+            <h2 class="text-[clamp(2.2rem,4.4vw,3.4rem)] text-fg">
+              Retrieval asks the same question twice. Compilation writes the answer down.
+            </h2>
 
-<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<script src="app.js"></script>
-</body>
+            <div class="mt-10 space-y-6 text-[1.0625rem] leading-[1.7] text-fg-2">
+              <p>
+                Every session, a coding agent re-derives the same facts about the same repository.
+                It greps. It reads. It reasons from scratch. The work is thrown away when the session
+                ends, and the next session pays for it again.
+              </p>
+              <p>
+                This system has the agent write the understanding down instead. Not into chat, and
+                not into a folder of stale notes. Into interlinked markdown pages with front matter,
+                a TL;DR, and a covers glob that ties each page to the code it describes.
+              </p>
+              <p>
+                A fresh session, a teammate, or a different tool orients from those files in two to
+                five thousand tokens. It never re-explores. It never has to be told anything twice.
+              </p>
+            </div>
+
+            <blockquote class="mt-12 border-l border-line-strong pl-6">
+              <p class="font-display text-[clamp(1.4rem,2.4vw,1.9rem)] leading-[1.3] text-fg">
+                Synthesis happens once, at change time. The reading is then almost free.
+              </p>
+              <cite class="mt-4 block font-mono text-[11.5px] not-italic text-fg-3">
+                references/llm-wiki-pattern.md, after Andrej Karpathy&rsquo;s LLM wiki
+              </cite>
+            </blockquote>
+
+            <dl class="mt-14 overflow-x-auto">
+              <table class="w-full min-w-[620px] border-collapse text-left text-[0.9375rem]">
+                <caption class="sr-only">
+                  What changes when understanding is compiled instead of re-derived.
+                </caption>
+                <thead>
+                  <tr class="border-y border-line">
+                    <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">dimension</th>
+                    <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">agent explores each session</th>
+                    <th scope="col" class="running py-3 font-medium text-accent">compiled wiki</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-line">
+                    <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-normal text-fg-3">when synthesis happens</th>
+                    <td class="py-3.5 pr-4 text-fg-2">every task, from scratch</td>
+                    <td class="py-3.5 font-medium text-fg">once, at change time</td>
+                  </tr>
+                  <tr class="border-b border-line">
+                    <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-normal text-fg-3">cost per session</th>
+                    <td class="py-3.5 pr-4 text-fg-2">20k to 100k tokens of reading</td>
+                    <td class="py-3.5 font-medium text-fg">2k to 8k tokens of orientation</td>
+                  </tr>
+                  <tr class="border-b border-line">
+                    <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-normal text-fg-3">knowledge of why</th>
+                    <td class="py-3.5 pr-4 text-fg-2">absent. code shows what, not why</td>
+                    <td class="py-3.5 font-medium text-fg">decisions, invariants, gotchas recorded</td>
+                  </tr>
+                  <tr class="border-b border-line">
+                    <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-normal text-fg-3">consistency across tools</th>
+                    <td class="py-3.5 pr-4 text-fg-2">each agent builds its own model</td>
+                    <td class="py-3.5 font-medium text-fg">one shared model</td>
+                  </tr>
+                  <tr>
+                    <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-normal text-fg-3">contradictions</th>
+                    <td class="py-3.5 pr-4 text-fg-2">invisible</td>
+                    <td class="py-3.5 font-medium text-fg">flagged by lint, resolved by a human</td>
+                  </tr>
+                </tbody>
+              </table>
+            </dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== cost
+           Dense: a chart the reader drives. -->
+      <section id="cost" class="scroll-mt-20 border-b border-line bg-surface">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-4">
+              <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">
+                The cost of forgetting, compounded.
+              </h2>
+              <p class="mt-7 max-w-[42ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                Re-exploration is not one expensive session. It is the same expense, again, every
+                session, forever. Move the counter and read the total.
+              </p>
+              <p class="mt-6 border-l border-line-strong pl-5 font-mono text-[11.5px] leading-relaxed text-fg-3">
+                These are documented bounds from references/llm-wiki-pattern.md. They are ranges,
+                not a benchmark run.
+              </p>
+            </div>
+
+            <div class="lg:col-span-8">
+              <div data-island="cost">
+                <div class="console overflow-hidden">
+                  <table class="w-full border-collapse font-mono text-[12px]">
+                    <caption class="sr-only">
+                      Documented token cost per session, cumulative across 40 sessions.
+                    </caption>
+                    <thead>
+                      <tr class="border-b border-con-line text-left text-con-fg-2">
+                        <th scope="col" class="py-2.5 pr-4 font-medium">mode</th>
+                        <th scope="col" class="py-2.5 pr-4 font-medium">per session</th>
+                        <th scope="col" class="py-2.5 font-medium">by session 40</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-con-fg">
+                      <tr class="border-b border-con-line">
+                        <td class="py-3 pr-4">re-explores the repo</td>
+                        <td class="py-3 pr-4">20k to 100k</td>
+                        <td class="py-3">0.8M to 4.0M</td>
+                      </tr>
+                      <tr class="border-b border-con-line">
+                        <td class="py-3 pr-4 text-con-accent">reads the compiled wiki</td>
+                        <td class="py-3 pr-4">2k to 8k</td>
+                        <td class="py-3">80k to 320k</td>
+                      </tr>
+                      <tr>
+                        <td class="py-3 pr-4">output quality</td>
+                        <td class="py-3 pr-4" colspan="2">degrades near 50k tokens in one window</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <p class="border-t border-con-line px-5 py-3 text-[12.5px] leading-snug text-con-fg-2">
+                    With JavaScript this becomes a chart. Drag the session counter to 40 and read the
+                    two totals.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ layers
+           The three layers set as one compilation, not three cards. -->
+      <section id="layers" class="scroll-mt-20 border-b border-line">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-4">
+              <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">Raw, wiki, schema.</h2>
+              <p class="mt-7 max-w-[40ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                Three layers, three owners, three operations. The pattern is Karpathy&rsquo;s LLM
+                wiki, applied to a repository.
+              </p>
+              <div class="mt-8 frontmatter">
+                <pre class="whitespace-pre-wrap">raw      immutable. the human curates
+wiki     agent writes, human reviews
+schema   human and agent co-evolve</pre>
+              </div>
+            </div>
+
+            <div class="lg:col-span-8">
+              <!-- The compilation, read top to bottom. -->
+              <ol class="border-t border-line">
+                <li class="grid grid-cols-1 gap-x-8 gap-y-3 border-b border-line py-7 sm:grid-cols-12">
+                  <div class="sm:col-span-4">
+                    <h3 class="font-display text-[1.75rem] text-fg">Raw</h3>
+                    <p class="mt-1.5 font-mono text-[11.5px] text-fg-3">the human curates</p>
+                  </div>
+                  <div class="sm:col-span-8">
+                    <p class="text-[0.9375rem] leading-[1.65] text-fg-2">
+                      The code itself, read only, plus
+                      <code class="font-mono text-fg">context/raw/</code> for PRDs, meeting notes,
+                      vendor docs and exports. The agent never edits this layer. Where a source
+                      disagrees with a page, the conflict goes to the human.
+                    </p>
+                  </div>
+                </li>
+
+                <li class="relative py-2" aria-hidden="true">
+                  <span class="ml-1 block font-mono text-[13px] text-accent">&darr; compiles into</span>
+                </li>
+
+                <li class="grid grid-cols-1 gap-x-8 gap-y-3 border-b border-line py-7 sm:grid-cols-12">
+                  <div class="sm:col-span-4">
+                    <h3 class="font-display text-[1.75rem] text-fg">Wiki</h3>
+                    <p class="mt-1.5 font-mono text-[11.5px] text-fg-3">agent writes, human reviews</p>
+                  </div>
+                  <div class="sm:col-span-8">
+                    <p class="text-[0.9375rem] leading-[1.65] text-fg-2">
+                      Interlinked pages under <code class="font-mono text-fg">context/</code>. Every
+                      page has front matter, a TL;DR first, and a cap of 160 lines. Pages record why,
+                      contracts, invariants and gotchas. They never restate the code.
+                    </p>
+                  </div>
+                </li>
+
+                <li class="relative py-2" aria-hidden="true">
+                  <span class="ml-1 block font-mono text-[13px] text-accent">&darr; ruled by</span>
+                </li>
+
+                <li class="grid grid-cols-1 gap-x-8 gap-y-3 border-b border-line py-7 sm:grid-cols-12">
+                  <div class="sm:col-span-4">
+                    <h3 class="font-display text-[1.75rem] text-fg">Schema</h3>
+                    <p class="mt-1.5 font-mono text-[11.5px] text-fg-3">co-evolved</p>
+                  </div>
+                  <div class="sm:col-span-8">
+                    <p class="text-[0.9375rem] leading-[1.65] text-fg-2">
+                      <code class="font-mono text-fg">AGENTS.md</code> is read first and stays at 120
+                      lines or fewer. Its Lessons section turns each of your corrections into one
+                      permanent line. <code class="font-mono text-fg">context/index.md</code> routes
+                      a task to the pages worth reading, and it is generated from front matter, so it
+                      cannot drift.
+                    </p>
+                  </div>
+                </li>
+              </ol>
+
+              <!-- The three operations, plus the one that makes software different. -->
+              <div class="mt-14">
+                <dl class="overflow-x-auto">
+                  <table class="w-full min-w-[560px] border-collapse text-left text-[0.9375rem]">
+                    <caption class="sr-only">The three operations, plus update-on-change.</caption>
+                    <thead>
+                      <tr class="border-y border-line">
+                        <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">operation</th>
+                        <th scope="col" class="running py-3 font-medium text-fg-3">what runs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="border-b border-line">
+                        <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-medium text-fg">ingest</th>
+                        <td class="py-3.5 text-fg-2">Read the source. Summarize it. Update the affected pages, usually 3 to 15. Log it.</td>
+                      </tr>
+                      <tr class="border-b border-line">
+                        <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-medium text-fg">query</th>
+                        <td class="py-3.5 text-fg-2">Run <code class="font-mono text-fg">ctx brief</code>. Read TL;DRs. Answer with citations. File a reusable answer as a page.</td>
+                      </tr>
+                      <tr class="border-b border-line">
+                        <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-medium text-fg">lint</th>
+                        <td class="py-3.5 text-fg-2">Find contradictions, stale claims, orphans, missing links. Errors exit 1.</td>
+                      </tr>
+                      <tr>
+                        <th scope="row" class="py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">update-on-change</th>
+                        <td class="py-3.5 text-fg">Code changed, so the covering pages change in the same diff. This is what keeps month three documentation true.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== loop
+           The sequence carries meaning, so it is numbered. -->
+      <section id="loop" class="scroll-mt-20 border-b border-line bg-surface">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-4">
+              <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">The core loop.</h2>
+              <p class="mt-7 max-w-[40ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                Seven steps, every unit. Recording is not a chore at the end of a pull request. It
+                is part of the diff, and tooling checks it.
+              </p>
+              <p class="mt-6 border-l border-line-strong pl-5 font-mono text-[11.5px] leading-relaxed text-fg-3">
+                Step 5 is the one that keeps the documentation true. The next section shows it
+                refusing to let a session end.
+              </p>
+            </div>
+
+            <ol class="lg:col-span-8">
+              <li class="grid grid-cols-[2.5rem_1fr] gap-x-5 border-t border-line py-6 sm:grid-cols-[3rem_1fr]">
+                <span class="pt-1 font-mono text-[13px] text-accent" aria-hidden="true">01</span>
+                <div>
+                  <h3 class="text-[1.25rem] text-fg">Orient</h3>
+                  <p class="mt-2 max-w-[62ch] text-[0.9375rem] leading-[1.65] text-fg-2">
+                    Read AGENTS.md, index.md, memory.md. Skim the tracker. Run
+                    <code class="font-mono text-fg">ctx brief</code>. Do not scan the repository. Two
+                    to five thousand tokens.
+                  </p>
+                </div>
+              </li>
+              <li class="grid grid-cols-[2.5rem_1fr] gap-x-5 border-t border-line py-6 sm:grid-cols-[3rem_1fr]">
+                <span class="pt-1 font-mono text-[13px] text-accent" aria-hidden="true">02</span>
+                <div>
+                  <h3 class="text-[1.25rem] text-fg">Plan</h3>
+                  <p class="mt-2 max-w-[62ch] text-[0.9375rem] leading-[1.65] text-fg-2">
+                    Write the spec. Add the ledger entry. Ask five questions or fewer, one at a time.
+                    The human reviews for five to ten minutes and rejects weak plans.
+                  </p>
+                </div>
+              </li>
+              <li class="grid grid-cols-[2.5rem_1fr] gap-x-5 border-t border-line py-6 sm:grid-cols-[3rem_1fr]">
+                <span class="pt-1 font-mono text-[13px] text-accent" aria-hidden="true">03</span>
+                <div>
+                  <h3 class="text-[1.25rem] text-fg">Build</h3>
+                  <p class="mt-2 max-w-[62ch] text-[0.9375rem] leading-[1.65] text-fg-2">
+                    Start one unit. The command line enforces one at a time. Interface first with
+                    mock data, logic second, and the logic ships its failing test first.
+                  </p>
+                </div>
+              </li>
+              <li class="grid grid-cols-[2.5rem_1fr] gap-x-5 border-t border-line py-6 sm:grid-cols-[3rem_1fr]">
+                <span class="pt-1 font-mono text-[13px] text-accent" aria-hidden="true">04</span>
+                <div>
+                  <h3 class="text-[1.25rem] text-fg">Record</h3>
+                  <p class="mt-2 max-w-[62ch] text-[0.9375rem] leading-[1.65] text-fg-2">
+                    Write decisions, bugs and lessons as they happen. A correction that is not
+                    written down is a correction you will receive again.
+                  </p>
+                </div>
+              </li>
+              <li class="grid grid-cols-[2.5rem_1fr] gap-x-5 border-y-2 border-fg bg-fg py-6 text-bg sm:grid-cols-[3rem_1fr]">
+                <span class="pt-1 font-mono text-[13px] text-accent-inv" aria-hidden="true">05</span>
+                <div>
+                  <h3 class="text-[1.25rem]">Context-diff</h3>
+                  <p class="mt-2 max-w-[62ch] text-[0.9375rem] leading-[1.65]" style="color: var(--c-bg); opacity: 0.84">
+                    Run <code class="font-mono">ctx impact</code>. Fix every page it marks. Cover every
+                    uncovered file. Then stamp. This is the step the next section demonstrates.
+                  </p>
+                </div>
+              </li>
+              <li class="grid grid-cols-[2.5rem_1fr] gap-x-5 border-t border-line py-6 sm:grid-cols-[3rem_1fr]">
+                <span class="pt-1 font-mono text-[13px] text-accent" aria-hidden="true">06</span>
+                <div>
+                  <h3 class="text-[1.25rem] text-fg">Verify</h3>
+                  <p class="mt-2 max-w-[62ch] text-[0.9375rem] leading-[1.65] text-fg-2">
+                    Lint, typecheck, build. Drive the real flow. Review against the spec checklist.
+                    Scale the effort to the risk.
+                  </p>
+                </div>
+              </li>
+              <li class="grid grid-cols-[2.5rem_1fr] gap-x-5 border-y border-line py-6 sm:grid-cols-[3rem_1fr]">
+                <span class="pt-1 font-mono text-[13px] text-accent" aria-hidden="true">07</span>
+                <div>
+                  <h3 class="text-[1.25rem] text-fg">Close</h3>
+                  <p class="mt-2 max-w-[62ch] text-[0.9375rem] leading-[1.65] text-fg-2">
+                    Regenerate the index. Lint. Log the build. Write memory.md with the exact next
+                    step. Then a cold agent can continue from the files alone.
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================== enforcement
+           Full-bleed dark. The signature interactive moment. -->
+      <section id="enforcement" class="scroll-mt-20 border-b border-line">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-5">
+              <h2 class="text-[clamp(2.2rem,4.6vw,3.6rem)] text-fg">
+                The session does not end until the docs are true.
+              </h2>
+              <p class="mt-8 max-w-[44ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                Change code. Try to stop. The Stop hook returns exit code 2 and refuses. It names
+                the pages that describe the code you changed. Fix them, stamp them, then stop.
+              </p>
+              <p class="mt-5 max-w-[44ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                This is not a policy. It is a hook in
+                <code class="font-mono text-fg">.claude/settings.json</code>. It is loop safe: it
+                honors <code class="font-mono text-fg">stop_hook_active</code>.
+              </p>
+
+              <div class="mt-10 frontmatter">
+                <pre class="whitespace-pre-wrap">hooks   SessionStart  re-inject orientation
+        Stop          block on silent drift
+
+lint    0 errors, 0 warnings on this repo
+doctor  12 wiring checks
+tests   47, on three operating systems</pre>
+              </div>
+
+              <p class="mt-8 font-mono text-[11.5px] leading-relaxed text-fg-3">
+                The transcript is the real output shape of scripts/ctx.mjs. Step with the rail, or
+                press keys 1 to 6.
+              </p>
+            </div>
+
+            <div class="lg:col-span-7">
+              <div data-island="hook">
+                <div class="console p-5">
+                  <p class="running mb-4 text-con-fg-2">transcript, six steps</p>
+                  <pre class="overflow-x-auto whitespace-pre-wrap font-mono text-[12px] leading-[1.8] text-con-fg"><code>$ node context/ctx.mjs task start 07
+tracker: Feature 07 -&gt; In progress (1 unit in progress, max 1)
+
+$ edit src/auth/session.ts    # rotate refresh tokens
+
+$ exit
+[project-context-system] Before ending the session:
+- Context pages not updated for changed code: context/codebase/modules/auth.md,
+  context/api-contracts.md. Update them (or confirm nothing they describe changed)
+  then run `node context/ctx.mjs stamp &lt;page&gt;`.
+- Neither context/progress-tracker.md nor memory.md was updated this session.
+exit 2
+
+$ node context/ctx.mjs impact
+changed code (working tree):
+  M src/auth/session.ts
+pages that must be updated:
+  x context/codebase/modules/auth.md     covers src/auth/**
+  x context/api-contracts.md             covers src/api/**
+uncovered files (BLIND SPOT):
+  ! src/auth/rotate.ts                   add to a covers: glob or ctx new module
+
+$ node context/ctx.mjs stamp context/codebase/modules/auth.md context/api-contracts.md
+stamped 2 page(s): updated 2026-10-07, verified_at 8ae5d7d
+
+$ exit
+hook stop: pass. no code change without a covering page update.</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== cli
+           A reference. Read mode: structure for comprehension. -->
+      <section id="cli" class="scroll-mt-20 border-b border-line bg-surface">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-4">
+              <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">One file, sixteen commands.</h2>
+              <p class="mt-7 max-w-[42ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                <code class="font-mono text-fg">setup</code> copies
+                <code class="font-mono text-fg">scripts/ctx.mjs</code> to
+                <code class="font-mono text-fg">context/ctx.mjs</code>. Your project carries the tool
+                forever. Zero dependencies, so it never breaks a lockfile.
+              </p>
+              <p class="mt-5 max-w-[42ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                Read-only commands accept <code class="font-mono text-fg">--json</code>. Every
+                payload carries <code class="font-mono text-fg">command</code> and
+                <code class="font-mono text-fg">ok</code>. Continuous integration reads
+                <code class="font-mono text-fg">ok</code>.
+              </p>
+            </div>
+
+            <div class="lg:col-span-8">
+              <div data-island="cli">
+                <div class="console overflow-hidden">
+                  <pre class="overflow-x-auto px-5 py-4 font-mono text-[12px] leading-[1.9] text-con-fg"><code>setup · init · detect · tools        one-command scaffold, profile, delegation targets
+brief · rules · coverage · status    route a task to pages; what applies to THIS file
+task add|start|block|done|list       the ledger, one unit at a time
+impact · stale · stamp · lint --fix  keep pages true to code (git-based)
+index · log · new · archive          catalog, timeline, scaffolds, growth rotation
+doctor · install · hook              wiring checks (12), installer, Claude hooks</code></pre>
+                  <p class="border-t border-con-line px-5 py-3 text-[12.5px] leading-snug text-con-fg-2">
+                    With JavaScript, pick a command and read its real output: brief, impact, stale,
+                    lint, doctor, task list, coverage, status, rules, tools, archive, index.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= files -->
+      <section id="files" class="scroll-mt-20 border-b border-line">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-4">
+              <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">Detected, not assumed.</h2>
+              <p class="mt-7 max-w-[42ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                <code class="font-mono text-fg">ctx setup</code> reads the manifests that exist. It
+                classifies the shape: web-app, api, cli, library, mobile, data or monorepo. Then it
+                scaffolds only what fits.
+              </p>
+              <p class="mt-5 max-w-[42ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                A FastAPI repository gets no Next.js flavoured pages. A docs repository gets no
+                testing page. On existing code, setup drafts
+                <code class="font-mono text-fg">codebase/map.md</code> from the real file census, with
+                <code class="font-mono text-fg">confidence: inferred</code>.
+              </p>
+            </div>
+
+            <div class="lg:col-span-8">
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[620px] border-collapse text-left text-[0.9375rem]">
+                  <caption class="sr-only">Files that ctx setup writes into your repository.</caption>
+                  <thead>
+                    <tr class="border-y border-line">
+                      <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">piece</th>
+                      <th scope="col" class="running py-3 font-medium text-fg-3">what it does</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">AGENTS.md</th>
+                      <td class="py-3.5 text-fg-2">The schema every agent reads first. 120 lines or fewer. Its Lessons section turns each correction into a permanent one-liner.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">context/</th>
+                      <td class="py-3.5 text-fg-2">The wiki: router index, append-only log, architecture, standards, decisions, codebase map, module pages with covers globs, feature specs, immutable raw.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">progress-tracker.md</th>
+                      <td class="py-3.5 text-fg-2">The task ledger: in progress, max one; blocked; up next; completed. Moved by <code class="font-mono text-fg">ctx task</code>, never by hand.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">.claude/rules/</th>
+                      <td class="py-3.5 text-fg-2">Path-gated conventions. A rule loads only when an agent touches matching files. Zero tokens spent on what does not apply.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">.claude/agents/</th>
+                      <td class="py-3.5 text-fg-2">Explorer and reviewer subagents with their own persistent memory, under version control.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">docs/</th>
+                      <td class="py-3.5 text-fg-2">Human-facing docs. Agents read context. One fact, one home, linked and never duplicated.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">memory.md</th>
+                      <td class="py-3.5 text-fg-2">Current state, exact next step, working set, open questions, context debt. Written at session end, read at session start.</td>
+                    </tr>
+                    <tr class="align-top">
+                      <th scope="row" class="whitespace-nowrap py-3.5 pr-4 font-mono text-[12.5px] font-medium text-accent">context/ctx.mjs</th>
+                      <td class="py-3.5 text-fg-2">The zero-dependency tool, refreshed on every re-run of setup.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="mt-6 font-mono text-[11.5px] leading-relaxed text-fg-3">
+                Idempotent: re-run setup any time, filled content is never clobbered. Upgrade safe:
+                it bumps setupVersion, and doctor flags a stale project.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================ teams -->
+      <section id="teams" class="scroll-mt-20 border-b border-line bg-surface">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-5">
+              <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">One unit. One branch. One owner.</h2>
+              <p class="mt-7 max-w-[44ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                The wiki is a committed artifact, so treat it like code. Branches own units, merges
+                reconcile, and tooling catches collisions. Nobody negotiates in chat.
+              </p>
+              <p class="mt-5 max-w-[44ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                Per-unit files are the concurrency trick. Two people building two features edit two
+                different files. Per-person files are gitignored, so nobody&rsquo;s scratch leaks
+                into anyone&rsquo;s checkout.
+              </p>
+            </div>
+
+            <div class="lg:col-span-7">
+              <div data-island="ledger">
+                <div class="console p-5">
+                  <p class="running mb-4 text-con-fg-2">context/progress-tracker.md</p>
+                  <pre class="overflow-x-auto whitespace-pre font-mono text-[12px] leading-[1.9] text-con-fg"><code>## In progress   (max one)
+- Feature 07  refresh token rotation       @ana   branch feat/07
+
+## Blocked
+- Feature 09  stripe webhook replay        @ravi  waiting on sandbox key
+
+## Up next
+- Feature 10  session list pagination
+- Feature 11  audit log export
+
+## Completed
+- Feature 06  login rate limit             2026-09-28
+- Feature 05  password reset flow          2026-09-21</code></pre>
+                  <p class="mt-5 text-[12.5px] leading-snug text-con-fg-2">
+                    With JavaScript: merge a second branch onto Feature 07 and watch ctx lint turn
+                    the collision into an error instead of an argument.
+                  </p>
+                </div>
+              </div>
+
+              <dl class="mt-10 overflow-x-auto">
+                <table class="w-full min-w-[460px] border-collapse text-left font-mono text-[12.5px]">
+                  <caption class="sr-only">Where collisions happen, and which tool catches them.</caption>
+                  <thead>
+                    <tr class="border-y border-line">
+                      <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">shared file</th>
+                      <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">collision</th>
+                      <th scope="col" class="running py-3 font-medium text-fg-3">caught by</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b border-line">
+                      <th scope="row" class="py-3 pr-4 font-medium text-fg">progress-tracker.md</th>
+                      <td class="py-3 pr-4 text-fg-2">two branches claim Feature NN</td>
+                      <td class="py-3 font-medium text-accent">lint error: listed twice</td>
+                    </tr>
+                    <tr class="border-b border-line">
+                      <th scope="row" class="py-3 pr-4 font-medium text-fg">feature-specs/</th>
+                      <td class="py-3 pr-4 text-fg-2">two specs share a number</td>
+                      <td class="py-3 font-medium text-accent">lint warn: renumber one</td>
+                    </tr>
+                    <tr class="border-b border-line">
+                      <th scope="row" class="py-3 pr-4 font-medium text-fg">decisions.md</th>
+                      <td class="py-3 pr-4 text-fg-2">both branches write D-07</td>
+                      <td class="py-3 font-medium text-accent">lint error: duplicate id</td>
+                    </tr>
+                    <tr class="border-b border-line">
+                      <th scope="row" class="py-3 pr-4 font-medium text-fg">log.md</th>
+                      <td class="py-3 pr-4 text-fg-2">both appended</td>
+                      <td class="py-3 text-fg-2">no problem, append only</td>
+                    </tr>
+                    <tr>
+                      <th scope="row" class="py-3 pr-4 font-medium text-fg">a module page</th>
+                      <td class="py-3 pr-4 text-fg-2">both edited the same area</td>
+                      <td class="py-3 text-fg-2">keep both facts, then stamp</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= laws -->
+      <section id="laws" class="scroll-mt-20 border-b border-line">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="mx-auto max-w-[68ch]">
+            <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">The method in five laws.</h2>
+            <p class="mt-7 text-[1.0625rem] leading-[1.65] text-fg-2">
+              Everything else in SKILL.md serves these five. The lint rules and the hooks exist to
+              make them mechanical rather than a matter of goodwill.
+            </p>
+
+            <ol class="mt-12 border-t border-line">
+              <li class="border-b border-line py-7">
+                <h3 class="font-display text-[1.6rem] text-fg">Decide what to build first.</h3>
+                <p class="mt-2.5 text-[0.9375rem] leading-[1.65] text-fg-2">
+                  A line changed in a plan is free. A decision spread through the codebase is a
+                  rewrite.
+                </p>
+              </li>
+              <li class="border-b border-line py-7">
+                <h3 class="font-display text-[1.6rem] text-fg">Make the hard calls on purpose.</h3>
+                <p class="mt-2.5 text-[0.9375rem] leading-[1.65] text-fg-2">
+                  Every addition gets an explicit cost recorded in
+                  <code class="font-mono text-fg">decisions.md</code>: the options, the lost
+                  alternative, the cost paid, reversibility, and the correctness policy.
+                </p>
+              </li>
+              <li class="border-b border-line py-7">
+                <h3 class="font-display text-[1.6rem] text-fg">Keep the state in files.</h3>
+                <p class="mt-2.5 text-[0.9375rem] leading-[1.65] text-fg-2">
+                  The agent updates them while working, every session. Tooling enforces it.
+                </p>
+              </li>
+              <li class="border-b border-line py-7">
+                <h3 class="font-display text-[1.6rem] text-fg">
+                  Never let the AI decide something important silently.
+                </h3>
+                <p class="mt-2.5 text-[0.9375rem] leading-[1.65] text-fg-2">
+                  Conflicts and gaps are flagged to the human. Every guess the text prevents is a
+                  decision that stays with you.
+                </p>
+              </li>
+              <li class="border-b border-line py-7">
+                <h3 class="font-display text-[1.6rem] text-fg">Read cheap, then deep.</h3>
+                <p class="mt-2.5 text-[0.9375rem] leading-[1.65] text-fg-2">
+                  Index line, then TL;DR, then the full page, then source code. Stop at the first
+                  level that answers.
+                </p>
+              </li>
+            </ol>
+
+            <div class="mt-16">
+              <h3 class="text-[1.5rem] text-fg">Prompts are products.</h3>
+              <p class="mt-4 max-w-[58ch] text-[0.9375rem] leading-[1.65] text-fg-2">
+                Specs, subagent briefs, clarify questions and Lessons follow ASD-STE100, the
+                aerospace documentation standard. It exists because ambiguity kills. In prompts,
+                ambiguity ships bugs. This page follows it too.
+              </p>
+
+              <dl class="mt-8 overflow-x-auto">
+                <table class="w-full min-w-[620px] border-collapse text-left text-[0.875rem]">
+                  <caption class="sr-only">ASD-STE100 rules, with a weak and a strong example each.</caption>
+                  <thead>
+                    <tr class="border-y border-line">
+                      <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">rule</th>
+                      <th scope="col" class="running py-3 pr-4 font-medium text-fg-3">weak</th>
+                      <th scope="col" class="running py-3 font-medium text-accent">clear</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="py-3 pr-4 font-mono text-[12px] font-medium text-fg">one action per sentence</th>
+                      <td class="py-3 pr-4 text-fg-3">The user can upload a file and it should be parsed and stored.</td>
+                      <td class="py-3 text-fg">Accept one .csv file. Parse it with the rules in data-model.md. Store rows in uploads.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="py-3 pr-4 font-mono text-[12px] font-medium text-fg">name the actor</th>
+                      <td class="py-3 pr-4 text-fg-3">The data is validated then saved.</td>
+                      <td class="py-3 text-fg">The API validates the payload. The API saves the row.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="py-3 pr-4 font-mono text-[12px] font-medium text-fg">exact numbers</th>
+                      <td class="py-3 pr-4 text-fg-3">A few retries, small file.</td>
+                      <td class="py-3 text-fg">3 retries, 2 s apart. File size 5 MB or less.</td>
+                    </tr>
+                    <tr class="border-b border-line align-top">
+                      <th scope="row" class="py-3 pr-4 font-mono text-[12px] font-medium text-fg">state the result</th>
+                      <td class="py-3 pr-4 text-fg-3">Do not make it slow or broken.</td>
+                      <td class="py-3 text-fg">The list renders in under 200 ms for 1,000 rows.</td>
+                    </tr>
+                    <tr class="align-top">
+                      <th scope="row" class="py-3 pr-4 font-mono text-[12px] font-medium text-fg">split conditions</th>
+                      <td class="py-3 pr-4 text-fg-3">If signed in and the plan allows and the file is small, allow upload.</td>
+                      <td class="py-3 text-fg">Allow the upload only when all three are true: the user is signed in; the plan allows uploads; the file is 5 MB or less.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== proof -->
+      <section id="proof" class="scroll-mt-20 border-b border-line bg-surface">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-24">
+          <div class="mx-auto max-w-[46rem]">
+            <h2 class="text-[clamp(2rem,4vw,3rem)] text-fg">Proven on itself.</h2>
+            <p class="mt-7 text-[1.0625rem] leading-[1.65] text-fg-2">
+              This repository runs its own context system. The wiki in
+              <code class="font-mono text-fg">context/</code> is live, lint returns 0 errors and 0
+              warnings, and 47 end-to-end tests pass on ubuntu, macOS and windows.
+            </p>
+            <p class="mt-5 text-[1.0625rem] leading-[1.65] text-fg-2">
+              Development history stays here: the changelog, the tests, this README.
+              <code class="font-mono text-fg">ctx install</code> ships only the skill.
+              <code class="font-mono text-fg">ctx setup</code> writes only pages about your project.
+              Both boundaries are test-guarded.
+            </p>
+
+            <div class="mt-10 flex flex-wrap items-center gap-2">
+              <a href="https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml" class="inline-flex items-center gap-2 rounded-[3px] border border-line px-3 py-1.5 font-mono text-[11.5px] text-fg-2 no-underline hover:border-line-strong hover:text-fg">
+                <span class="h-1.5 w-1.5 rounded-full bg-accent-line" aria-hidden="true"></span>
+                <span id="ci-chip">ci live workflow</span>
+              </a>
+              <a href="https://github.com/AnshRoshan/project-context-system/releases" class="inline-flex items-center rounded-[3px] border border-line px-3 py-1.5 font-mono text-[11.5px] text-fg-2 no-underline hover:border-line-strong hover:text-fg">release v2.4.1</a>
+              <span class="inline-flex items-center rounded-[3px] border border-line px-3 py-1.5 font-mono text-[11.5px] text-fg-2">dependencies 0</span>
+              <span class="inline-flex items-center rounded-[3px] border border-line px-3 py-1.5 font-mono text-[11.5px] text-fg-2">node 18 or newer</span>
+              <a href="https://github.com/AnshRoshan/project-context-system/blob/main/LICENSE" class="inline-flex items-center rounded-[3px] border border-line px-3 py-1.5 font-mono text-[11.5px] text-fg-2 no-underline hover:border-line-strong hover:text-fg">MIT</a>
+              <span class="inline-flex items-center rounded-[3px] border border-line px-3 py-1.5 font-mono text-[11.5px] text-fg-2">claude code, codex, cursor, copilot, gemini, qoder</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================== install -->
+      <section id="install" class="scroll-mt-20 border-b border-line">
+        <div class="mx-auto max-w-[1560px] px-5 py-20 lg:px-8 lg:py-28">
+          <div class="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16">
+            <div class="lg:col-span-5">
+              <h2 class="text-[clamp(2.2rem,5vw,4rem)] text-fg">
+                Give your agent the repo, not the rerun.
+              </h2>
+              <p class="mt-8 max-w-[42ch] text-[1.0625rem] leading-[1.65] text-fg-2">
+                Setup detects your stack, scaffolds the wiki, drafts the codebase map on existing
+                code, and self-checks with twelve doctor checks. Run it again any time. It upgrades
+                in place.
+              </p>
+              <div class="mt-8 border-l border-line-strong pl-5">
+                <p class="text-[0.9375rem] leading-[1.65] text-fg-2">
+                  Or paste one sentence to your agent: &ldquo;Clone
+                  <code class="font-mono text-accent">https://github.com/AnshRoshan/project-context-system</code>,
+                  install it, then set up this repository.&rdquo;
+                </p>
+              </div>
+            </div>
+
+            <div class="lg:col-span-7">
+              <ol class="console divide-y divide-con-line">
+                <li class="grid grid-cols-[2rem_1fr_auto] items-start gap-4 p-5">
+                  <span class="font-mono text-[13px] text-con-accent" aria-hidden="true">1</span>
+                  <div class="min-w-0">
+                    <p class="text-[13px] leading-snug text-con-fg-2">Install the skill. It auto-detects ~/.claude and ~/.qoder.</p>
+                    <pre class="mt-2 overflow-x-auto whitespace-pre font-mono text-[12.5px] leading-relaxed text-con-fg"><code>git clone https://github.com/AnshRoshan/project-context-system
+node project-context-system/scripts/ctx.mjs install</code></pre>
+                  </div>
+                  <div data-island="copybtn" data-copy="git clone https://github.com/AnshRoshan/project-context-system &amp;&amp; node project-context-system/scripts/ctx.mjs install">
+                    <button type="button" class="rounded-[3px] border border-con-line px-2 py-1 font-mono text-[10.5px] text-con-fg-2">copy</button>
+                  </div>
+                </li>
+                <li class="grid grid-cols-[2rem_1fr_auto] items-start gap-4 p-5">
+                  <span class="font-mono text-[13px] text-con-accent" aria-hidden="true">2</span>
+                  <div class="min-w-0">
+                    <p class="text-[13px] leading-snug text-con-fg-2">Set up any repository from its root. Any language, greenfield or not.</p>
+                    <pre class="mt-2 overflow-x-auto whitespace-pre font-mono text-[12.5px] leading-relaxed text-con-fg"><code>cd your-project &amp;&amp; node /path/to/scripts/ctx.mjs setup</code></pre>
+                  </div>
+                  <div data-island="copybtn" data-copy="cd your-project &amp;&amp; node /path/to/scripts/ctx.mjs setup">
+                    <button type="button" class="rounded-[3px] border border-con-line px-2 py-1 font-mono text-[10.5px] text-con-fg-2">copy</button>
+                  </div>
+                </li>
+                <li class="grid grid-cols-[2rem_1fr_auto] items-start gap-4 p-5">
+                  <span class="font-mono text-[13px] text-con-accent" aria-hidden="true">3</span>
+                  <div class="min-w-0">
+                    <p class="text-[13px] leading-snug text-con-fg-2">Work. Everything after this is project-relative.</p>
+                    <pre class="mt-2 overflow-x-auto whitespace-pre font-mono text-[12.5px] leading-relaxed text-con-fg"><code>node context/ctx.mjs brief src/auth/login.ts
+node context/ctx.mjs task start 03</code></pre>
+                  </div>
+                  <div data-island="copybtn" data-copy="node context/ctx.mjs brief src/auth/login.ts">
+                    <button type="button" class="rounded-[3px] border border-con-line px-2 py-1 font-mono text-[10.5px] text-con-fg-2">copy</button>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ============================================================== colophon -->
+    <footer class="border-t border-line bg-surface">
+      <div class="mx-auto max-w-[1560px] px-5 py-14 lg:px-8">
+        <div class="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-12">
+          <div class="col-span-2 lg:col-span-4">
+            <p class="font-mono text-[13px] font-medium text-fg">project-context-system</p>
+            <p class="mt-3 max-w-[36ch] text-[0.875rem] leading-relaxed text-fg-2">
+              A drop-in skill that turns any repository into a self-maintaining markdown wiki for
+              coding agents. MIT licensed. Copy, adapt, reuse.
+            </p>
+            <p class="mt-4 max-w-[38ch] font-mono text-[11px] leading-relaxed text-fg-3">
+              Version 1 distilled five senior-engineer AI-build courses. Version 2 rebuilt it on the
+              LLM-wiki pattern with progressive disclosure and git-backed staleness.
+            </p>
+          </div>
+
+          <nav class="lg:col-span-2" aria-label="Repository">
+            <p class="running text-fg">repository</p>
+            <ul class="mt-4 space-y-2 text-[0.875rem]">
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system">README</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/SKILL.md">SKILL.md</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/INSTALL.md">INSTALL.md</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/CHANGELOG.md">CHANGELOG</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/releases">releases</a></li>
+            </ul>
+          </nav>
+
+          <nav class="lg:col-span-3" aria-label="References">
+            <p class="running text-fg">references</p>
+            <ul class="mt-4 space-y-2 text-[0.875rem]">
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/references/llm-wiki-pattern.md">llm-wiki-pattern.md</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/references/ctx-cli.md">ctx-cli.md</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/references/operations.md">operations.md</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/references/multi-user.md">multi-user.md</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/references/tool-delegation.md">tool-delegation.md</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/references/prompt-craft.md">prompt-craft.md</a></li>
+            </ul>
+          </nav>
+
+          <nav class="lg:col-span-3" aria-label="Live">
+            <p class="running text-fg">live</p>
+            <ul class="mt-4 space-y-2 text-[0.875rem]">
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml">CI workflow</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/tree/main/context">this repo&rsquo;s own context</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/scripts/ctx.mjs">scripts/ctx.mjs</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/blob/main/LICENSE">LICENSE</a></li>
+              <li><a class="text-fg-2 no-underline hover:text-accent" href="https://github.com/AnshRoshan/project-context-system/issues">issues</a></li>
+            </ul>
+          </nav>
+        </div>
+
+        <div class="mt-12 flex flex-col gap-3 border-t border-line pt-6 font-mono text-[11px] text-fg-3 sm:flex-row sm:items-center">
+          <p>Built with Vite. Deployed from web/ by the pages workflow.</p>
+          <p class="sm:ml-auto">Set in Instrument Serif, IBM Plex Sans and IBM Plex Mono.</p>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

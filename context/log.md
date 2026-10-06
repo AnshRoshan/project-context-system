@@ -26,3 +26,6 @@ pages: references/prompt-craft.md (new), feature-spec template, workflow-rules, 
 
 ## [2026-10-06] build | README rewritten as landing surface; MIT LICENSE added
 pages: README.md, LICENSE
+
+## [2026-10-06] build | website: integrated the model-built Vite site into web/
+scroll-meter moved to CSS scroll-timeline; mobile section nav added; future dates fixed; website.md module page keeps coverage at 100%

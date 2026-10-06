@@ -1,0 +1,401 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   project-context-system: DESIGN
+   --------------------------------------------------------------------------
+   WORLD    The page is a compiled engineering document. Not a page about a
+            document: it behaves like one. It carries front matter, a TL;DR,
+            an index that routes, margin notes that hold paths, and a folio.
+            The artifact the product produces IS the design language.
+
+   MODE     Persuade. A developer must believe that context is compiled and
+            then install it. Proof is real CLI output and real repo numbers.
+
+   TYPE     Instrument Serif carries the reading voice: it is a document face,
+            not a system face. IBM Plex Sans carries interface prose.
+            IBM Plex Mono appears only for paths, front matter, code, and
+            measurement. Never as a costume for "technical".
+            Tracking floor on display is -0.04em. Display caps at 6rem.
+
+   BANS     Enforced, from the craft floor: no kicker or eyebrow above a
+            heading. No section numbers unless the sequence carries meaning.
+            No same-size card grids as page structure. No gradient text.
+            No coloured border-left above 1px. Content visible by default:
+            one authored motion moment, not an entrance on every section.
+
+   THEMES   Light ("paper") and dark ("ink") plus system. The reading surface
+            follows the reader. Consoles stay dark in both, because a terminal
+            is dark: the console tokens are independent of the page tokens.
+   ========================================================================== */
+
+:root {
+  --c-bg: #f6f5f1; /* warm paper, not blue-grey */
+  --c-surface: #fffefb;
+  --c-surface-2: #edebe4;
+  --c-line: #dcd8ce;
+  --c-line-strong: #b9b3a6;
+
+  --c-fg: #14120e; /* 15.8:1 on bg */
+  --c-fg-2: #4a463d; /* 7.1:1 on bg  */
+  --c-fg-3: #615c51; /* 5.1:1 on bg  */
+
+  --c-accent: #9a3412; /* 6.4:1 on bg, text safe   */
+  --c-accent-line: #c2410c; /* 4.5:1 on bg, stroke safe */
+  --c-accent-solid: #9a3412;
+  --c-on-accent: #fffefb;
+  --c-accent-inv: #ffedd5; /* on an inverted fg surface, 11.4:1 */
+
+  --c-shadow: 20 18 14;
+}
+
+[data-theme="dark"] {
+  --c-bg: #100f0c; /* warm near-black */
+  --c-surface: #171511;
+  --c-surface-2: #201d17;
+  --c-line: #2e2a22;
+  --c-line-strong: #453f33;
+
+  --c-fg: #f2efe8; /* 16.1:1 on bg */
+  --c-fg-2: #b5ae9e; /* 9.4:1 on bg  */
+  --c-fg-3: #8f8878; /* 5.8:1 on bg  */
+
+  --c-accent: #fb923c; /* 9.2:1 on bg */
+  --c-accent-line: #ea580c;
+  --c-accent-solid: #fb923c;
+  --c-on-accent: #100f0c;
+  --c-accent-inv: #7c2d12; /* on an inverted fg surface, 6.1:1 */
+
+  --c-shadow: 0 0 0;
+}
+
+/* Consoles: dark in both themes. A terminal is dark. */
+:root {
+  --c-con: #14120e;
+  --c-con-2: #1d1a15;
+  --c-con-line: #332e25;
+  --c-con-fg: #f2efe8;
+  --c-con-fg-2: #a39b8b;
+  --c-con-accent: #fb923c;
+}
+
+[data-theme="dark"] {
+  --c-con: #080706; /* sinks below the page so it reads as inset */
+  --c-con-2: #100f0c;
+  --c-con-line: #241f19;
+}
+
+@theme {
+  --color-bg: var(--c-bg);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-line: var(--c-line);
+  --color-line-strong: var(--c-line-strong);
+  --color-fg: var(--c-fg);
+  --color-fg-2: var(--c-fg-2);
+  --color-fg-3: var(--c-fg-3);
+  --color-accent: var(--c-accent);
+  --color-accent-line: var(--c-accent-line);
+  --color-accent-solid: var(--c-accent-solid);
+  --color-on-accent: var(--c-on-accent);
+  --color-accent-inv: var(--c-accent-inv);
+  --color-con: var(--c-con);
+  --color-con-2: var(--c-con-2);
+  --color-con-line: var(--c-con-line);
+  --color-con-fg: var(--c-con-fg);
+  --color-con-fg-2: var(--c-con-fg-2);
+  --color-con-accent: var(--c-con-accent);
+
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+    /* the reading column, shared by every section */
+    --measure: 68ch;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--c-bg);
+    color: var(--c-fg);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    font-variant-numeric: normal;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.04em; /* the floor */
+    line-height: 1;
+    text-wrap: balance;
+  }
+
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.011em;
+    line-height: 1.25;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+    font-size: 0.8125em;
+    font-variant-ligatures: none;
+  }
+
+  /* Every numeral in data, tables and telemetry aligns. */
+  table,
+  dl,
+  output,
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- browser surfaces, themed. The cheapest signal that a page
+     was built rather than assembled, and the one most often skipped. ----- */
+
+  ::selection {
+    background: var(--c-accent);
+    color: var(--c-on-accent);
+  }
+
+  ::placeholder {
+    color: var(--c-fg-3);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--c-accent);
+  }
+
+  a {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    text-decoration-color: var(--c-line-strong);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-accent-line);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  .console :focus-visible,
+  .console:focus-visible {
+    outline-color: var(--c-con-accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* ----------------------------------------------------------- vocabulary -- */
+
+@utility folio {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--c-fg-3);
+}
+
+/* Running head and table column header. Never used above a heading. */
+@utility running {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+@utility measure {
+  max-width: var(--measure);
+}
+
+@utility console {
+  background-color: var(--c-con);
+  color: var(--c-con-fg);
+  border: 1px solid var(--c-con-line);
+  border-radius: 4px;
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.03),
+    0 30px 70px -50px rgb(var(--c-shadow) / 0.9);
+}
+
+/* Front matter block: the product's own page format, used as a design device.
+   It carries real information about the section that follows. */
+@utility frontmatter {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  color: var(--c-fg-3);
+  border-left: 1px solid var(--c-line);
+  padding-left: 1rem;
+}
+
+/* ------------------------------------------------------- theme switching */
+
+html.theming,
+html.theming *,
+html.theming *::before,
+html.theming *::after {
+  transition:
+    background-color 200ms var(--ease),
+    border-color 200ms var(--ease),
+    color 200ms var(--ease),
+    fill 200ms var(--ease) !important;
+}
+
+/* ------------------------------------------- the one authored motion moment
+   The compile. Everything else on the page is already visible. */
+
+@keyframes ctx-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ctx-led {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(251 146 60 / 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgb(251 146 60 / 0);
+  }
+}
+
+.anim-blink {
+  animation: ctx-blink 1.05s steps(1, end) infinite;
+}
+.anim-led {
+  animation: ctx-led 2.4s var(--ease) infinite;
+}
+
+/* ------------------------------------------------------- range control -- */
+
+input[type="range"].range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-con-line);
+}
+input[type="range"].range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 8px;
+  margin-top: -7px;
+  border-radius: 2px;
+  background: var(--c-con-accent);
+  border: 1px solid var(--c-con);
+  transition: background-color 140ms var(--ease);
+}
+input[type="range"].range:hover::-webkit-slider-thumb {
+  background: #fff;
+}
+input[type="range"].range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c-con-line);
+}
+input[type="range"].range::-moz-range-thumb {
+  height: 18px;
+  width: 8px;
+  border-radius: 2px;
+  background: var(--c-con-accent);
+  border: 1px solid var(--c-con);
+}
+
+/* --------------------------------------------------------- scrollbars -- */
+
+.term-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-con-line) transparent;
+}
+.term-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.term-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.term-scroll::-webkit-scrollbar-thumb {
+  background: var(--c-con-line);
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------- scrollspy */
+
+[data-spy].is-active {
+  color: var(--c-accent);
+}
+
+/* --------------------------------------------------- reduced motion kill */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------- scroll meter
+   Scroll-driven CSS animation: the reader's position, no JS, no listener.
+   Unsupported browsers keep the static hairline; content is never gated. */
+@supports (animation-timeline: scroll()) {
+  @keyframes scroll-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  #scroll-meter {
+    transform-origin: 0 50%;
+    animation: scroll-grow linear both;
+    animation-timeline: scroll(root block);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #scroll-meter { animation: none; transform: scaleX(1); }
+}

@@ -1,5 +1,7 @@
 # project-context-system
 
+**[Live site: anshroshan.github.io/project-context-system](https://anshroshan.github.io/project-context-system/)**
+
 **The model isn't your bottleneck. Your repo is.** Same model, same prompts — one dev gets a chatbot that re-explores the codebase every session, the other gets an agent that starts each session already knowing the project. The difference is a folder of compiled knowledge. This skill builds that folder, keeps it honest, and never lets it rot.
 
 [![release](https://img.shields.io/github/v/release/AnshRoshan/project-context-system?color=blue)](https://github.com/AnshRoshan/project-context-system/releases)

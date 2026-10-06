@@ -10,3 +10,10 @@ node_modules/
 dist/
 .next/
 build/
+# Append these lines to the .gitignore at your repo root.
+# The website is built in CI. Nothing from the build is committed.
+
+# website (web/)
+web/node_modules/
+web/dist/
+web/.vite/
