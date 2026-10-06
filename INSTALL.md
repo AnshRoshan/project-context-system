@@ -8,6 +8,20 @@ The skill is three things you can install independently:
 
 ## 1. The skill
 
+**From a GitHub link (recommended):** paste this to your agent —
+
+> Clone `https://github.com/AnshRoshan/project-context-system`, run `node <clone>/scripts/ctx.mjs install` to install it as a skill for my agent tool, then use it to set up this repository.
+
+Or do the same by hand:
+
+```bash
+git clone https://github.com/AnshRoshan/project-context-system
+node project-context-system/scripts/ctx.mjs install              # auto-detects ~/.claude / ~/.qoder
+node project-context-system/scripts/ctx.mjs install --tool claude  # or --dest <skills-dir>
+```
+
+`install` copies only the shippable skill (`SKILL.md`, `references/`, `assets/`, `scripts/`) — the repo's dev history (CHANGELOG, tests, README) stays in the repo. Re-run to update; it overwrites cleanly.
+
 Claude Code (personal):
 
 ```bash
@@ -48,27 +62,32 @@ install -m 755 /path/to/project-context-system/scripts/ctx.mjs ~/.local/bin/ctx
 ctx --help
 ```
 
-## 3. The scaffold
+## 3. The scaffold — one command
 
-Run `init` **from the skill directory** — it is the one command that reads `assets/`:
+**Run from your project's root.** This is the only command anywhere that references a path outside the project; everything after setup is project-relative:
 
 ```bash
-node /path/to/project-context-system/scripts/ctx.mjs init --root /path/to/your-project
+cd /path/to/your-project
+node /path/to/project-context-system/scripts/ctx.mjs setup
 ```
 
-Flags: none needed — `init` detects the project profile (languages, kinds, UI/DB/API signals,
-installed agent tools) and scaffolds what fits. Overrides: `--ui`/`--no-ui`, `--full`,
-`--pointers` (all tool pointer files), `--no-detect`. Preview the decision with
-`node scripts/ctx.mjs detect --root <project>` (run from inside the project for detection).
+It detects the project profile (languages, kinds, UI/DB/API signals, installed agent tools)
+and does everything mechanical: full scaffold + path-gated `.claude/rules/` + subagent
+definitions with their own memory + a `codebase/map.md` draft from the real file census
+(brownfield included) + `ctx index` + a 12-point `ctx doctor` self-check. Optional:
+`--danger "src/auth,src/payments"` for nested landmine warnings; `--ui/--no-ui`,
+`--full`, `--pointers`, `--no-detect` to override detection.
 
-`init` copies the CLI into `context/ctx.mjs`, so the project carries its own tooling
+**Idempotent and upgrade-safe:** re-run any time — filled content is never clobbered, new
+files get added, and after updating the skill the re-run upgrades the project in place
+(`doctor` flags a stale `setupVersion` and tells you).
+
+`setup` copies the CLI into `context/ctx.mjs`, so the project carries its own tooling
 afterwards and every later command is simply:
 
 ```bash
 node context/ctx.mjs brief src/whatever.ts
 ```
-
-`init` never overwrites an existing file, so it is safe to re-run.
 
 ## Verify the install
 
@@ -76,10 +95,12 @@ node context/ctx.mjs brief src/whatever.ts
 node context/ctx.mjs doctor
 ```
 
-17 checks covering the things that quietly break: that `CLAUDE.md` really imports
-`AGENTS.md`, that git actually ignores `context/current-issues.md` and `.env`, that
-`.claude/settings.json` denies `.env*` reads and has both hooks, and that the
-always-read context fits in its token budget. Exits non-zero when anything fails.
+12 checks covering the things that quietly break: that `CLAUDE.md` really imports
+`AGENTS.md`, that git actually ignores `context/current-issues.md`, `CLAUDE.local.md` and
+`.claude/settings.local.json`, that `.claude/settings.json` denies `.env*` reads and has
+both hooks, that the path-gated rules and subagent memory exist, and that the project is
+at the skill's current `setupVersion` (if not: re-run `setup` to upgrade). `setup` runs
+this for you as its last step. Exits non-zero when anything fails.
 
 A green `doctor` plus `ctx lint` is the definition of a correctly wired project.
 
@@ -89,7 +110,8 @@ A green `doctor` plus `ctx lint` is the definition of a correctly wired project.
 node tests/run.mjs          # or: npm test
 ```
 
-37 end-to-end cases against throwaway git repos. If you change `scripts/ctx.mjs`,
+47 end-to-end cases against throwaway git repos (scaffold, profiles, setup idempotence
+and upgrades, hooks, lint, JSON contracts). If you change `scripts/ctx.mjs`,
 run it. It needs no dependencies and no network.
 
 ## Uninstall

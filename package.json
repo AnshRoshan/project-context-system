@@ -1,6 +1,6 @@
 {
   "name": "project-context-system",
-  "version": "3.1.0",
+  "version": "3.4.0",
   "description": "Turns any project into a self-maintaining markdown knowledge base (Karpathy-style LLM wiki) that coding agents read instead of re-exploring the codebase, with a zero-dependency ctx CLI and hooks that enforce it.",
   "license": "MIT",
   "type": "module",

@@ -484,6 +484,127 @@ test('detect and tools honour the json contract', (dir) => {
   assert(t.command === 'tools' && Array.isArray(t.available), `tools json: ${JSON.stringify(t).slice(0, 200)}`);
 });
 
+function setupRepo(dir, extra = []) {
+  const r = sh('node', [CTX_SRC, 'setup', '--root', dir, ...extra], dir);
+  assert(r.code === 0, `setup failed: ${r.out}`);
+  return r;
+}
+
+test('setup does the whole mechanical job on a brownfield repo, then no-ops', (dir) => {
+  fs.mkdirSync(path.join(dir, 'src', 'components'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'src', 'components', 'Button.tsx'), 'export const B = 1;\n');
+  const r = setupRepo(dir);
+  assertContains(r.out, 'ctx doctor: 12/12', 'a fresh setup must pass every doctor check:\n' + r.out);
+  const map = fs.readFileSync(path.join(dir, 'context', 'codebase', 'map.md'), 'utf8');
+  assertContains(map, 'src/auth/', 'map draft missing the directory census');
+  assertContains(map, 'next dev', 'map draft missing entry points from the manifest');
+  assert(fs.existsSync(path.join(dir, '.claude', 'rules', 'frontend.md')), 'path-gated rules not generated');
+  assert(fs.existsSync(path.join(dir, 'context', 'agents', 'context-explorer', 'MEMORY.md')), 'subagent memory not scaffolded');
+  // idempotence: a second run creates nothing and leaves the filled map alone
+  fs.writeFileSync(path.join(dir, 'context', 'codebase', 'map.md'), '# FILLED BY HAND\n');
+  const again = setupRepo(dir);
+  assert(!/created \((?!0)/.test(again.out), `second setup created files:\n${again.out}`);
+  assert(fs.readFileSync(path.join(dir, 'context', 'codebase', 'map.md'), 'utf8') === '# FILLED BY HAND\n', 'setup clobbered a hand-filled map');
+});
+
+test('setup upgrades a project scaffolded by an older version', (dir) => {
+  setupRepo(dir);
+  const cfgP = path.join(dir, 'context', '.ctx.json');
+  const cfg = JSON.parse(fs.readFileSync(cfgP, 'utf8'));
+  cfg.setupVersion = '0.0.1';
+  fs.writeFileSync(cfgP, JSON.stringify(cfg, null, 2));
+  const bad = sh('node', [CTX_SRC, 'doctor', '--root', dir], dir);
+  assert(bad.code !== 0 && /re-run/.test(bad.out), 'doctor must flag a stale setupVersion with the fix');
+  setupRepo(dir);
+  assert(JSON.parse(fs.readFileSync(cfgP, 'utf8')).setupVersion !== '0.0.1', 'setup did not bump setupVersion');
+  assert(sh('node', [CTX_SRC, 'doctor', '--root', dir], dir).code === 0, 'doctor should pass after the upgrade');
+});
+
+test('rules routes a file to its path-gated rules and covering pages', (dir) => {
+  setupRepo(dir);
+  ctx(dir, 'new', 'module', 'auth', '--covers', 'src/auth/**');
+  const r = ctx(dir, 'rules', 'src/auth/session.ts', '--json');
+  const data = JSON.parse(r.out);
+  const m = data.matches[0];
+  assert(m.pages.includes('context/codebase/modules/auth.md'), `covering page missed: ${JSON.stringify(m)}`);
+  const h = ctx(dir, 'rules', 'src/auth/session.ts');
+  assertContains(h.out, 'modules/auth.md');
+});
+
+test('lint flags machine-specific absolute paths in pages', (dir) => {
+  initRepo(dir);
+  const p = path.join(dir, 'context', 'overview.md');
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8') + '\nThe dataset lives in C:\\Users\\dev\\data\\raw.csv on my machine.\n');
+  const r = ctx(dir, 'lint');
+  assertContains(r.out, 'absolute path', 'lint should push project-relative paths');
+  assert(!r.out.includes('ERROR'), 'an absolute path is a warning, not an error');
+});
+
+test('setup --danger drops a nested AGENTS.md in the landmine directory', (dir) => {
+  setupRepo(dir, ['--danger', 'src/auth,src/nope']);
+  const nested = fs.readFileSync(path.join(dir, 'src', 'auth', 'AGENTS.md'), 'utf8');
+  assertContains(nested, 'src/auth/');
+  assert(!fs.existsSync(path.join(dir, 'src', 'nope', 'AGENTS.md')), 'a nonexistent danger zone must be skipped, not created');
+});
+
+test('archive rotates old log and tracker entries without deleting history', (dir) => {
+  initRepo(dir);
+  const lp = path.join(dir, 'context', 'log.md');
+  const fresh = new Date().toISOString().slice(0, 10);
+  fs.writeFileSync(lp, fs.readFileSync(lp, 'utf8') + `\n## [2025-01-05] build | ancient unit\nnote one\n\n## [${fresh}] build | fresh unit\n`);
+  const tr = path.join(dir, 'context', 'progress-tracker.md');
+  fs.writeFileSync(tr, fs.readFileSync(tr, 'utf8').replace('## Completed\n', '## Completed\n\n- Feature 01: old thing — 2025-01-05 — details here\n'));
+  const r = ctx(dir, 'archive');
+  assertContains(r.out, 'log: 1 entr');
+  assertContains(r.out, 'tracker: 1 old completion');
+  const arch = fs.readdirSync(path.join(dir, 'context', 'archive'));
+  const archLog = arch.find((f) => f.startsWith('log-'));
+  const archTrk = arch.find((f) => f.startsWith('tracker-'));
+  assert(archLog && archTrk, `archives missing: ${arch.join(', ')}`);
+  const logNow = fs.readFileSync(lp, 'utf8');
+  assert(!logNow.includes('ancient unit') && logNow.includes('fresh unit'), 'log rotation moved the wrong entries');
+  assertContains(fs.readFileSync(path.join(dir, 'context', 'archive', archLog), 'utf8'), 'ancient unit', 'history must be preserved in the archive');
+  assertContains(fs.readFileSync(tr, 'utf8'), 'older completions archived', 'tracker must keep a pointer to its archive');
+});
+
+test('lint catches branch-merge ID collisions in the tracker', (dir) => {
+  initRepo(dir);
+  const tr = path.join(dir, 'context', 'progress-tracker.md');
+  fs.writeFileSync(tr, fs.readFileSync(tr, 'utf8').replace('## Up next\n', '## Up next\n\n- Feature 04: branch A unit\n- Feature 04: branch B unit\n'));
+  const r = ctx(dir, 'lint');
+  assert(r.code !== 0 && /listed twice/.test(r.out), `duplicate Feature id in one section must error:\n${r.out}`);
+});
+
+test('task refuses to claim a number already in the ledger', (dir) => {
+  initRepo(dir);
+  ctx(dir, 'task', 'add', 'first unit');
+  const r = ctx(dir, 'task', 'add', 'second unit', '--spec', '1');
+  assert(r.code !== 0 && /already in the ledger/.test(r.out), `--spec collision must be refused:\n${r.out}`);
+});
+
+test('the CLI copy shipped into a project carries no skill lineage', (dir) => {
+  initRepo(dir);
+  const t = fs.readFileSync(path.join(dir, 'context', 'ctx.mjs'), 'utf8');
+  assert(!/karpathy/i.test(t), 'attribution leaked into the project copy');
+  assert(!/^\s*\*\s.*\(v\d/m.test(t.split('\n').slice(0, 15).join('\n')), 'version chatter in the copied header');
+});
+
+test('install ships the skill files and keeps repo dev history behind', (dir) => {
+  const dest = path.join(dir, 'skillhome');
+  const r = sh('node', [CTX_SRC, 'install', '--dest', dest], dir);
+  assert(r.code === 0, `install failed: ${r.out}`);
+  const root = path.join(dest, 'project-context-system');
+  for (const f of ['SKILL.md', 'scripts/ctx.mjs', 'references/operations.md', 'assets/AGENTS.md.template']) {
+    assert(fs.existsSync(path.join(root, f)), `${f} not installed`);
+  }
+  for (const f of ['CHANGELOG.md', 'tests', 'README.md', '.git']) {
+    assert(!fs.existsSync(path.join(root, f)), `repo dev history leaked into the install: ${f}`);
+  }
+  // idempotent re-install overwrites cleanly
+  const again = sh('node', [CTX_SRC, 'install', '--dest', dest], dir);
+  assert(again.code === 0 && again.out.includes('installed'), `re-install failed:\n${again.out}`);
+});
+
 /* ----------------------------------------------------------------- summary */
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {

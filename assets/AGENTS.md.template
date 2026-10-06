@@ -27,6 +27,7 @@ Before any code change also read `context/workflow-rules.md` and `context/code-s
 - Before touching a third-party library, read its entry in `context/library-docs.md` (skill/MCP/docs first).
 - No hard-coded hex values; visual values come from `context/ui-tokens.md`.
 - Secrets: never read `.env*`, never paste values anywhere. Env var **names** only.
+- Paths and commands are **project-relative** (`node context/ctx.mjs …`, run from the repo root). Never write machine-specific absolute paths (`C:\Users\…`, `/home/…`) into committed files — they break for everyone else.
 - Every value a feature shows or computes has a named source (value-source gate) — no source = ask.
 
 ## Maintain the wiki (you own it; the human reviews)
@@ -48,7 +49,7 @@ Page rules: frontmatter required (`title type status summary updated`, plus `cov
 
 ## Skills & commands
 
-- `node context/ctx.mjs` — `brief` `task` `impact` `stale` `lint` `doctor` `index` `coverage` `log` `stamp` `new` `status` `detect` `tools`
+- `node context/ctx.mjs` — `brief` `rules` `task` `impact` `stale` `lint` `doctor` `index` `coverage` `log` `stamp` `new` `status` `detect` `tools`
 - `project-context-system` skill — SETUP / ADOPT / INGEST / QUERY / LINT / HANDOFF procedures
 - **Delegate, don't hand-roll:** `ctx tools` lists code-intelligence tools here (graphify, ctags, aider, …). For a code map or dependency questions, run the tool first and distill its output into the wiki — never re-explore the repo by hand when a tool already indexed it
 - **Humans read `docs/`, agents read `context/`** — one fact, one home; docs pages link into the wiki
@@ -57,3 +58,9 @@ Page rules: frontmatter required (`title type status summary updated`, plus `cov
 ## Verification
 
 Run lint + typecheck + build + `node context/ctx.mjs lint` before declaring a unit done. Report results and what the human should review.
+
+## Lessons (this file learns — newest on top)
+
+Every human correction becomes a one-line lesson here: "When X, do Y." Add the moment it happens; delete lines that no longer apply; keep the whole section under ~20 lines (older lessons graduate into workflow-rules or a page).
+
+- {{example: when adding an endpoint, also add the rate-limit decorator — CI does not catch it}}

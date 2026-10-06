@@ -13,7 +13,7 @@ updated: {{TODAY}}
 
 - One unit at a time, inside the spec. Hard calls go to the human, recorded in decisions.md.
 - Record while working (tracker, decisions, issues, wiki pages) — never batch to the end.
-- Orient from the wiki (`index.md` → `memory.md` → `brief`), don't re-explore the repo.
+- Orient from the wiki (`index.md` → `memory.md` → `brief`), don't re-explore the repo. Touching a file? `ctx rules <file>` lists the path-gated rules and pages that apply.
 - Done = verified in the real app + lint/typecheck/build + `ctx impact` clean + memory.md updated.
 
 The discipline layer. These rules govern how the agent behaves, not what it builds. Copy verbatim into every project.
@@ -43,6 +43,7 @@ The discipline layer. These rules govern how the agent behaves, not what it buil
 - New UI component → check ui-registry.md for a similar one; match its exact classes, or build to ui-rules/ui-tokens and append it to the registry.
 - After UI work → sweep the codebase for UI inconsistencies against ui-rules/ui-tokens/registry and produce a fix list; do not fix silently.
 - Bug appears → current-issues.md: symptom + suspected file + fix direction + definition of success.
+- The human corrects you → one line in AGENTS.md "Lessons" (When X, do Y) in the same session. A correction not written down is a correction you will receive again.
 - Gap found in any context file → edit that file during the build.
 - End of EVERY session → update memory.md: current state, exact next step, open questions.
 - Feature/phase complete → changelog + PR description generated from the actual diff, not from memory of the work.

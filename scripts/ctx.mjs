@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 /**
- * ctx — zero-dependency CLI for the project-context-system (v2.1).
+ * ctx — the project's context-wiki tooling (installed by the project-context-system skill).
  *
- * The context/ folder is a compiled, interlinked markdown wiki about the project
- * (Karpathy "LLM wiki" pattern: raw sources -> wiki -> schema). This tool does the
- * mechanical bookkeeping so the agent spends tokens on judgement, not on grep:
+ * The context/ folder is a compiled, interlinked markdown wiki about this project:
+ * raw sources -> pages -> schema. This tool does the mechanical bookkeeping so
+ * agents spend tokens on judgement, not on grep:
  *
  *   init        scaffold the whole system into a project (skips existing files);
  *               auto-detects the project profile (stack, kind, UI/DB/API, agent tools)
+ *   setup       THE one command: init + path-gated rules + agent memory + mechanical
+ *               codebase map draft (brownfield) + index + doctor. Idempotent — re-run
+ *               any time (also upgrades: refreshes context/ctx.mjs and adds new files)
+ *   install     install the skill itself into an agent tool's skills folder
+ *               (--tool claude|qoder|auto, --dest dir); ships SKILL/references/assets/
+ *               scripts only — repo dev history stays in the repo
+ *   rules       which rules/pages apply to these files (path-gated, zero wasted tokens)
  *   detect      print the detected project profile (stack, kind, groups, pointer files)
  *   tools       code-intelligence tools available here to delegate to (graphify, ctags, …)
  *   brief       route a task/file/keywords to the few pages worth reading (+ token cost)
@@ -19,6 +26,7 @@
  *   coverage    source files that no page documents (blind spots)
  *   log         append a greppable entry to context/log.md
  *   task        task ledger: list|add|start|done|block (Now/Up next/Blocked/Completed)
+ *   archive     rotate old log/tracker entries into context/archive/ (growth control)
  *   stamp       mark pages re-verified against current code
  *   new         create a page with correct frontmatter (module|feature|source|<any>)
  *   status      one-screen health summary
@@ -31,15 +39,17 @@
  * Node >= 18. No dependencies. Works without git (staleness features degrade gracefully).
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const SKILL_DIR = path.resolve(path.dirname(SELF), '..');
+const VERSION = '2.4.0';
 
 /* ------------------------------------------------------------------ args */
-const VALUE_FLAGS = new Set(['root', 'since', 'budget', 'covers', 'title', 'm', 'tail', 'limit', 'type', 'summary', 'spec']);
+const VALUE_FLAGS = new Set(['root', 'since', 'budget', 'covers', 'title', 'm', 'tail', 'limit', 'type', 'summary', 'spec', 'danger', 'days', 'keep-days', 'tool', 'dest']);
 const argv = process.argv.slice(2);
 const cmd = argv[0];
 const flags = {};
@@ -90,11 +100,13 @@ const DEFAULTS = {
   maxAgentsLines: 120,
   maxSummaryChars: 160,
   oldPageDays: 120,
+  archiveAfterDays: 180,
+  trackerKeepDays: 90,
   alwaysRead: ['context/index.md', 'memory.md'],
   ignoreDirs: ['node_modules', '.git', '.next', 'dist', 'build', 'out', 'coverage', '.turbo', '.venv', 'venv', '__pycache__', 'target', 'vendor', '.cache', '.claude', '.cursor'],
   sourceExt: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.go', '.rs', '.java', '.kt', '.rb', '.php', '.cs', '.swift', '.sql', '.prisma', '.vue', '.svelte'],
   ignoreSourceGlobs: ['**/*.d.ts', '**/*.test.*', '**/*.spec.*', '**/__tests__/**', '**/migrations/**', '**/drizzle/**', '**/*.config.*', '**/next-env.d.ts'],
-  pageExcludes: ['context/raw/', 'context/designs/', 'context/screenshots/', 'context/archive/', 'context/index.md', 'context/log.md', 'context/current-issues.md', 'context/README.md'],
+  pageExcludes: ['context/raw/', 'context/designs/', 'context/screenshots/', 'context/archive/', 'context/agents/', 'context/index.md', 'context/log.md', 'context/current-issues.md', 'context/README.md'],
 };
 let CONFIG = { ...DEFAULTS };
 try {
@@ -302,8 +314,12 @@ function detect(root) {
   const pkg = readJsonSafe(path.join(root, 'package.json'));
   const allDeps = pkg ? Object.keys({ ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }).join(' ').toLowerCase() : '';
   const manifestText = manifests.map((f) => (fs.readFileSync(path.join(root, f), 'utf8') || '').toLowerCase()).join(' ');
-  const haystack = allDeps + ' ' + manifestText;
-  for (const [sig, markers] of Object.entries(DEP_MARKERS)) if (markers.some((m) => haystack.includes(m))) signals.add(sig);
+  // dep names may substring-match (npm scopes); free manifest text needs word-ish boundaries
+  // so 'gin' inside "context-engineering" never claims a Go backend
+  const depRx = (m) => new RegExp(`(^|[^a-z0-9-])${m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z0-9]|$)`, 'm');
+  for (const [sig, markers] of Object.entries(DEP_MARKERS)) {
+    if (markers.some((m) => allDeps.includes(m) || depRx(m).test(manifestText))) signals.add(sig);
+  }
   if (pkg && (pkg.bin || /commander|yargs|oclif|inquirer/.test(allDeps)) && !signals.has('ui')) signals.add('cli');
   if (pkg && (pkg.main || pkg.exports) && !signals.has('ui') && !signals.has('backend')) signals.add('library');
   const isMonorepo = !!(pkg && pkg.workspaces) || top.includes('pnpm-workspace.yaml') || ['apps', 'packages'].some((d) => top.includes(d) && fs.existsSync(path.join(root, d)));
@@ -317,7 +333,9 @@ function detect(root) {
   if (signals.has('library')) kinds.push('library');
   if (signals.has('docs')) kinds.push('docs');
   if (!langs.size && !kinds.length) {
-    const hasAnySource = walk(root).some((f) => CONFIG.sourceExt.includes(path.extname(f)) && !f.startsWith('context/'));
+    // probe with the DEFAULT code extensions — the seeded config may list .md, and the
+    // scaffold's own pages must never flip a docs project into "generic" after setup
+    const hasAnySource = walk(root).some((f) => DEFAULTS.sourceExt.includes(path.extname(f)) && !rel(f).startsWith('context/'));
     kinds.push(hasAnySource ? 'generic' : 'docs');
     if (!langs.size) langs.add(hasAnySource ? 'generic' : 'docs');
   }
@@ -451,6 +469,42 @@ commands.tools = () => {
     for (const t of found) console.log(`  ✓ ${t.id}\n      best: ${t.best}\n      how:  ${t.how}`);
     console.log('\nRule: the tool produces, the wiki keeps — distill output into context/ pages, never paste raw dumps.');
   });
+};
+
+/* ---- install — the skill's own installer: point it at a GitHub clone and the skill
+   lands in the right tools folder. Only the shippable parts go; repo dev history
+   (CHANGELOG, tests, repo README) stays in the repo. */
+const TOOL_HOMES = { claude: ['.claude', 'skills'], qoder: ['.qoder', 'skills'] };
+const SHIP = ['SKILL.md', 'references', 'assets', 'scripts'];
+function copyTree(src, dst) {
+  if (!fs.existsSync(src)) return;
+  if (fs.statSync(src).isDirectory()) {
+    fs.mkdirSync(dst, { recursive: true });
+    for (const e of fs.readdirSync(src)) copyTree(path.join(src, e), path.join(dst, e));
+  } else fs.copyFileSync(src, dst);
+}
+commands.install = () => {
+  const skillMd = path.join(SKILL_DIR, 'SKILL.md');
+  if (!fs.existsSync(skillMd)) return die('install must run from the cloned skill repo (no SKILL.md beside scripts/)');
+  const name = String(parseFrontmatter(fs.readFileSync(skillMd, 'utf8')).data.name || path.basename(SKILL_DIR));
+  const home = os.homedir();
+  let targets;
+  if (flags.dest && flags.dest !== true) targets = [path.resolve(String(flags.dest), name)];
+  else {
+    const tool = flags.tool && flags.tool !== true ? String(flags.tool) : 'auto';
+    if (tool === 'auto') {
+      targets = Object.values(TOOL_HOMES).filter(([d]) => fs.existsSync(path.join(home, d))).map(([d, sub]) => path.join(home, d, sub, name));
+      if (!targets.length) return die(`no supported tool home found in ${home} (~/.claude or ~/.qoder) — pass --tool claude|qoder or --dest <dir>`);
+    } else if (TOOL_HOMES[tool]) targets = [path.join(home, TOOL_HOMES[tool][0], TOOL_HOMES[tool][1], name)];
+    else return die(`unknown --tool "${tool}" — use claude|qoder|auto, or --dest <dir>`);
+  }
+  for (const dst of targets) {
+    if (path.resolve(dst) === path.resolve(SKILL_DIR)) return die('refusing to install the skill onto itself');
+    fs.mkdirSync(dst, { recursive: true });
+    for (const item of SHIP) copyTree(path.join(SKILL_DIR, item), path.join(dst, item));
+    console.log(`installed ${name} v${VERSION} → ${dst}`);
+  }
+  console.log('Next: in any project, tell the agent "set up the project context system" — or run node <install-dir>/scripts/ctx.mjs setup from the project root.');
 };
 
 /* ---- brief */
@@ -621,6 +675,8 @@ commands.lint = () => {
       void rx;
     }
     if (/\{\{[^}]+\}\}/.test(stripCode(p.text))) (flags.strict ? E : W)(`${p.rel}: unfilled {{placeholder}} — fill it or delete the section`);
+    // machine-specific absolute paths make committed files unportable — everything is project-relative
+    if (/(?:^|[\s(`"'=])(?:[A-Za-z]:[\\/]|\/(?:Users|home)\/[^\s)`"']+)/.test(stripCode(p.text))) W(`${p.rel}: machine-specific absolute path — use project-relative paths (ctx commands run from the project root: node context/ctx.mjs …)`);
 
     // links
     const clean = stripCode(p.text);
@@ -681,8 +737,17 @@ commands.lint = () => {
     const b = feats(sect('Completed'));
     const both = [...a].filter((x) => b.has(x) || bl.has(x)).concat([...bl].filter((x) => b.has(x)));
     if (both.length) E(`progress-tracker.md: Feature ${[...new Set(both)].join(', ')} appears in two states (In progress / Blocked / Completed must be exclusive)`);
-    if (a.size > 1) W(`progress-tracker.md: ${a.size} features In progress — one unit at a time (ctx task start enforces this)`);
+    if (a.size > 1) W(`progress-tracker.md: ${a.size} features In progress — one unit at a time per agent/branch (ctx task start enforces this)`);
+    // same-section duplicates = two branches claimed the same number (multi-user merge collision)
     const specDir = path.join(CTX, 'feature-specs');
+    for (const s of ['In progress', 'Blocked', 'Up next', 'Completed']) {
+      const ids = [...sect(s).matchAll(/Feature\s+(\d+)/gi)].map((m) => m[1]);
+      const dup = ids.filter((x, i) => ids.indexOf(x) !== i);
+      if (dup.length) E(`progress-tracker.md: Feature ${[...new Set(dup)].join(', ')} listed twice under ${s} — branch merge collision: keep one line per unit, renumber the other spec`);
+    }
+    const specNums = fs.existsSync(specDir) ? fs.readdirSync(specDir).filter((f) => /^\d+/.test(f)).map((f) => f.match(/^(\d+)/)[1]) : [];
+    const sdup = specNums.filter((x, i) => specNums.indexOf(x) !== i);
+    if (sdup.length) W(`feature-specs/: number ${[...new Set(sdup)].join(', ')} used by two specs (branch merge) — renumber one and update its tracker line`);
     const hasSpec = (id) => fs.existsSync(specDir) && fs.readdirSync(specDir).some((f) => f.startsWith(String(id).padStart(2, '0')));
     for (const id of new Set([...a, ...b, ...feats(sect('Up next')), ...feats(sect('Blocked'))])) {
       if (!hasSpec(id)) (a.has(id) || b.has(id) ? E : W)(`progress-tracker.md: Feature ${id} is tracked but has no spec in context/feature-specs/ — create one (ctx new feature <name>) or remove the line`);
@@ -856,14 +921,22 @@ commands.task = () => {
     const title = pos.slice(1).join(' ') || (flags.title && flags.title !== true ? String(flags.title) : '');
     if (!title) return die('usage: ctx task add "title" [--spec NN]');
     let id = flags.spec && flags.spec !== true ? String(flags.spec).replace(/\D/g, '') : null;
-    if (!id) {
-      let max = 0;
-      for (const s of TASK_SECTIONS) for (const l of (getSection(text, s) || '').split('\n')) {
+    const usedNums = () => {
+      const s = new Set();
+      for (const sec of TASK_SECTIONS) for (const l of (getSection(text, sec) || '').split('\n')) {
         if (!isRealTask(l)) continue;
         const m = l.match(/Feature\s+(\d+)/i);
-        if (m) max = Math.max(max, Number(m[1]));
+        if (m) s.add(Number(m[1]));
       }
-      id = String(max + 1);
+      return s;
+    };
+    if (!id) {
+      const used = usedNums();
+      let n = 1;
+      for (const u of used) if (u >= n) n = u + 1;
+      id = String(n);
+    } else if (usedNums().has(Number(id))) {
+      return die(`Feature ${id} is already in the ledger (another branch's unit?) — pick a free number or omit --spec`);
     }
     id = id.padStart(2, '0');
     const body = (getSection(text, 'Up next') || '').split('\n').filter((l) => !/\{\{Feature NN/.test(l)).join('\n');
@@ -894,6 +967,74 @@ commands.task = () => {
     console.log(`Feature ${argId} → Completed`);
   } else return die('usage: ctx task list|add|start|block|done  (one unit at a time; done requires concrete details)');
   fs.writeFileSync(tp, upsertFm(text, 'updated', today()));
+};
+
+/* ---- archive — the growth valve: the wiki stays fast because old material moves out.
+   log.md entries and tracker Completed lines older than the cutoff rotate into
+   context/archive/ (still greppable forever); nothing is ever deleted. */
+commands.archive = () => {
+  const dry = !!flags['dry-run'];
+  const logDays = Number(flags.days || CONFIG.archiveAfterDays || 180);
+  const trkDays = Number(flags['keep-days'] || CONFIG.trackerKeepDays || 90);
+  const cutoff = (d) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+  const cl = cutoff(logDays), ct = cutoff(trkDays);
+  const moved = { log: 0, tracker: 0 };
+  const lp = path.join(CTX, 'log.md');
+  if (fs.existsSync(lp)) {
+    const text = fs.readFileSync(lp, 'utf8');
+    const keep = [];
+    const old = [];
+    for (const entry of text.split(/\n(?=## \[)/)) {
+      const m = entry.match(/^## \[(\d{4}-\d{2}-\d{2})\]/);
+      if (m && m[1] < cl) old.push({ date: m[1], text: entry.trimEnd() });
+      else keep.push(entry);
+    }
+    if (old.length) {
+      moved.log = old.length;
+      if (!dry) {
+        const ap = path.join(CTX, 'archive', `log-${cl.slice(0, 7)}.md`);
+        if (!fs.existsSync(ap)) fs.writeFileSync(ap, `---\ntitle: Activity Log (archived before ${cl})\ntype: log\nstatus: archived\nsummary: Rotated out of context/log.md by ctx archive on ${today()} — still greppable\nupdated: ${today()}\n---\n\n# Log (archived)\n`);
+        fs.appendFileSync(ap, '\n' + old.map((o) => o.text).join('\n') + '\n');
+        fs.writeFileSync(lp, keep.join('\n'));
+      }
+      console.log(`log: ${old.length} entr${old.length === 1 ? 'y' : 'ies'} older than ${cl} → context/archive/log-${cl.slice(0, 7)}.md`);
+    } else console.log(`log: nothing older than ${cutoff(logDays)} days (${cl})`);
+  }
+  const tp = path.join(CTX, 'progress-tracker.md');
+  if (fs.existsSync(tp)) {
+    let text = fs.readFileSync(tp, 'utf8');
+    const body = getSection(text, 'Completed');
+    if (body) {
+      const lines = body.split('\n');
+      const keepLines = [];
+      const movedLines = [];
+      for (const l of lines) {
+        const m = l.match(/(\d{4}-\d{2}-\d{2})/);
+        if (isRealTask(l) && m && m[1] < ct) movedLines.push(l);
+        else keepLines.push(l);
+      }
+      if (movedLines.length) {
+        moved.tracker = movedLines.length;
+        if (!dry) {
+          const ap = path.join(CTX, 'archive', `tracker-${ct.slice(0, 4)}.md`);
+          if (!fs.existsSync(ap)) fs.writeFileSync(ap, `---\ntitle: Completed Work (archived ${ct.slice(0, 4)})\ntype: tracker\nstatus: archived\nsummary: Completions older than ${ct}, rotated by ctx archive — concrete details preserved, greppable\nupdated: ${today()}\n---\n\n# Completed (archived)\n`);
+          fs.appendFileSync(ap, '\n' + movedLines.join('\n') + '\n');
+          const pointer = `- (older completions archived: ${rel(path.join(CTX, 'archive', `tracker-${ct.slice(0, 4)}.md`))})`;
+          if (!keepLines.some((l) => l.includes('older completions archived'))) keepLines.push(pointer);
+          text = setSection(text, 'Completed', keepLines.join('\n'));
+          fs.writeFileSync(tp, upsertFm(text, 'updated', today()));
+        }
+        console.log(`tracker: ${movedLines.length} old completion(s) → context/archive/tracker-${ct.slice(0, 4)}.md (pointer left behind)`);
+      } else console.log(`tracker: nothing completed before ${ct}`);
+    }
+  }
+  const dec = path.join(CTX, 'decisions.md');
+  if (fs.existsSync(dec)) {
+    const n = fs.readFileSync(dec, 'utf8').split('\n').length;
+    if (n > CONFIG.maxPageLines) console.log(`decisions: ${n} lines — when a page this central grows, split by year: move the oldest D-NN blocks to context/archive/decisions-<year>.md (keep IDs stable — pages link them) and leave a pointer line`);
+  }
+  if (!dry && (moved.log || moved.tracker)) commands.index();
+  console.log(moved.log || moved.tracker ? (dry ? 'dry run — nothing written' : 'archive: done (history is never deleted, only moved out of the hot path)') : 'archive: everything is within the keep window');
 };
 
 /* ---- stamp */
@@ -975,6 +1116,18 @@ commands.doctor = () => {
   } else {
     C(false, '.claude/settings.json parses', 'fix or re-run ctx init');
   }
+  const cfgJ = (() => {
+    try {
+      return JSON.parse(read('context/.ctx.json'));
+    } catch {
+      return null;
+    }
+  })();
+  C(!cfgJ || cfgJ.setupVersion === VERSION, `project tooling at skill version ${VERSION}`, `project was set up by ${cfgJ.setupVersion || 'an older version'} — re-run: node <skill>/scripts/ctx.mjs setup --root . (idempotent upgrade)`);
+  const dr = detect(ROOT);
+  const expectRules = uiOn(dr, {}) || dr.signals.includes('backend') || dr.signals.includes('db') || dr.langs.some((l) => l !== 'docs');
+  C(!expectRules || fs.existsSync(path.join(ROOT, '.claude', 'rules')), '.claude/rules/ path-gated rules present', 're-run ctx setup to generate them');
+  C(!fs.existsSync(path.join(CTX, 'agents')) || fs.existsSync(path.join(CTX, 'agents', 'context-explorer', 'MEMORY.md')), 'subagent memory wired', 're-run ctx setup to scaffold context/agents/*/MEMORY.md');
   const fails = checks.filter((c) => !c.ok);
   emit({ command: 'doctor', ok: !fails.length, checks }, () => {
     for (const c of checks) console.log(`${c.ok ? 'ok  ' : 'FAIL'}  ${c.label}${c.ok ? '' : ' — ' + c.fix}`);
@@ -1097,9 +1250,143 @@ const POINTER_MAP = [
   ['copilot-instructions.md.template', '.github/copilot-instructions.md', 'copilot'],
   ['cursor-rule.mdc.template', '.cursor/rules/project-context.mdc', 'cursor'],
 ];
+/* ---- setup — the ONE command: everything mechanical, greenfield or brownfield.
+   Idempotent (never clobbers filled content) and upgrade-safe (re-run after updating
+   the skill: refreshes context/ctx.mjs, adds new files, bumps setupVersion). */
+function mapDraft() {
+  const mp = path.join(CTX, 'codebase', 'map.md');
+  const filled = fs.existsSync(mp) && !/\{\{/.test(fs.readFileSync(mp, 'utf8'));
+  if (filled) return { skipped: 'filled' };
+  const files = sourceFiles();
+  if (files.length < 3) return { skipped: 'small', files: files.length }; // greenfield: the template is the honest answer
+  const byDir = new Map();
+  for (const f of files) {
+    const parts = f.split('/');
+    const dir = parts.length > 1 ? parts.slice(0, Math.min(2, parts.length - 1)).join('/') + '/' : './ (root)';
+    byDir.set(dir, (byDir.get(dir) || 0) + 1);
+  }
+  const entries = [];
+  const pkg = readJsonSafe(path.join(ROOT, 'package.json'));
+  if (pkg) {
+    if (pkg.bin) for (const [k, v] of Object.entries(typeof pkg.bin === 'string' ? { [readJsonSafe(path.join(ROOT, 'package.json')).name]: pkg.bin } : pkg.bin)) entries.push(`\`${k}\` → \`${v}\` (bin)`);
+    if (pkg.main) entries.push(`main: \`${pkg.main}\``);
+    for (const [s, c] of Object.entries(pkg.scripts || {})) if (/^(dev|start|serve|build|test)/.test(s)) entries.push(`script \`npm run ${s}\`: \`${c}\``);
+  }
+  for (const cand of ['manage.py', 'main.py', 'app.py', 'src/main.rs', 'src/main.go', 'cmd/main.go', 'main.go', 'src/index.ts', 'src/index.js', 'src/main.ts']) if (fs.existsSync(path.join(ROOT, cand))) entries.push(`\`${cand}\``);
+  const dirs = [...byDir.entries()].sort((a, b) => b[1] - a[1]);
+  const topGlobs = dirs.slice(0, 8).map(([d]) => (d === './ (root)' ? '' : d + '**')).filter(Boolean);
+  const md = `---
+title: Codebase Map
+type: module
+status: draft
+summary: Mechanical draft from ctx setup — directory census and entry points, no meaning yet
+tags: [codebase,map]
+covers: []
+confidence: inferred
+updated: ${today()}
+---
+
+# Codebase Map
+
+## TL;DR
+
+- Draft generated by \`ctx setup\` on ${today()} — **structure only, no meaning yet**. Verify each area by reading code (or \`ctx tools\` for a code-intel pass) before trusting it.
+- ${files.length} source files across ${dirs.length} areas.
+
+## Layout
+
+| Area | Files | What lives here (fill from reading code) |
+|---|---|---|
+${dirs.map(([d, n]) => `| \`${d}\` | ${n} | TODO |`).join('\n')}
+
+## Entry points
+
+${entries.length ? entries.map((e) => `- ${e}`).join('\n') : '- TODO — no manifest entry points detected'}
+
+## Where is X?
+
+| Question | Answer (file → symbol) |
+|---|---|
+
+## Generated / do-not-edit
+
+TODO — list code generators, migrations, vendored output. (\`ctx\` already ignores: ${CONFIG.ignoreDirs.slice(0, 8).join(', ')}.)
+
+## Module pages
+
+Create one per cohesive area as you learn it — \`ctx new module <name> --covers "<glob>"\`. Candidate globs from the census: ${topGlobs.slice(0, 6).map((g) => '`' + g + '`').join(', ') || '—'} (\`ctx coverage\` tracks the rest).
+`;
+  fs.mkdirSync(path.dirname(mp), { recursive: true });
+  fs.writeFileSync(mp, md);
+  return { skipped: false, files: files.length };
+}
+commands.setup = () => {
+  if (path.resolve(SELF) !== path.resolve(path.join(ROOT, 'context', 'ctx.mjs')) && !fs.existsSync(path.join(SKILL_DIR, 'assets'))) {
+    return die('setup must use the skill\'s own scripts/ctx.mjs (needs its assets/ folder) — run it from the project root: node <skill-dir>/scripts/ctx.mjs setup');
+  }
+  console.log('=== ctx setup ===\n');
+  commands.init();
+  const draft = mapDraft();
+  if (!draft.skipped) console.log(`\nmap: drafted context/codebase/map.md from the code census (${draft.files} source files) — confidence: inferred`);
+  else if (draft.skipped === 'small') console.log('\nmap: too little code to census (greenfield) — re-run setup once there is real code, or fill the template by hand');
+  else console.log('\nmap: context/codebase/map.md already filled — left untouched');
+  console.log('');
+  commands.index();
+  console.log('');
+  commands.doctor();
+  console.log(`
+Judgement work left (the agent does this, the CLI cannot):
+  1. fill every {{PLACEHOLDER}} from the planning conversation (ctx lint lists them)
+  2. verify the map draft against real code; create module pages as areas get learned
+  3. seed the task-routing table in context/index.md with this project's task types
+Then: ctx task add "<first unit>" — and the system runs itself from there.`);
+};
+
+/* ---- rules — path-gated: what must be read for THESE files */
+commands.rules = () => {
+  if (!pos.length) return die('usage: ctx rules <file...>');
+  const ruleFiles = [...walk(path.join(ROOT, '.claude', 'rules')), ...walk(path.join(ROOT, '.cursor', 'rules'))].filter((f) => f.endsWith('.md'));
+  const rules = ruleFiles.map((f) => {
+    const { data } = parseFrontmatter(fs.readFileSync(f, 'utf8'));
+    return { file: rel(f), globs: asList(data.paths || data.globs).flatMap((g) => String(g).split(',').map((s) => s.trim()).filter(Boolean)), read: String(data.read || '').trim() };
+  });
+  const out = [];
+  for (const raw of pos) {
+    const f = raw.replace(/^\.\//, '');
+    const matched = rules.filter((r) => r.globs.length && anyMatch(matchers(r.globs), f));
+    const pages = [];
+    for (const p of pages_()) {
+      const rx = matchers(p.data.covers);
+      if (rx.length && anyMatch(rx, f)) pages.push(p.rel);
+    }
+    const nested = [];
+    for (const p of ['AGENTS.md', ...(() => {
+      const parts = f.split('/');
+      const acc = [];
+      for (let i = 1; i < parts.length; i++) acc.push(parts.slice(0, i).join('/') + '/AGENTS.md');
+      return acc;
+    })()]) if (fs.existsSync(path.join(ROOT, p)) && p !== 'AGENTS.md') nested.push(p);
+    out.push({ file: f, rules: matched.map((m) => m.file), pages, nestedAgents: nested });
+  }
+  emit({ command: 'rules', ok: true, matches: out }, () => {
+    for (const m of out) {
+      console.log(`${m.file}:`);
+      for (const r of m.rules) {
+        const rr = rules.find((x) => x.file === r);
+        console.log(`  rule  ${r}${rr && rr.read ? ' — read ' + rr.read : ''}`);
+      }
+      for (const p of m.pages) console.log(`  page  ${p}`);
+      for (const n of m.nestedAgents) console.log(`  local ${n} (danger zone — read before editing)`);
+      if (!m.rules.length && !m.pages.length && !m.nestedAgents.length) console.log('  (nothing path-gated — orient via: ctx brief ' + m.file + ')');
+    }
+  });
+};
+function pages_() {
+  return pages().filter((p) => !['superseded', 'archived'].includes(p.data.status));
+}
 commands.init = () => {
   const assetsDir = path.join(SKILL_DIR, 'assets');
-  if (!fs.existsSync(assetsDir)) return die(`init needs the skill's assets/ folder — looked in ${assetsDir}. Run it from the installed skill directory, not from the context/ctx.mjs copy.`);
+  if (!fs.existsSync(assetsDir)) return die(`init needs the skill's assets/ folder — use the skill's own scripts/ctx.mjs from your project root (node <skill-dir>/scripts/ctx.mjs init); this copy at ${SELF} ships without it.`);
   const d = flags['no-detect'] ? { langs: [], kinds: ['generic'], signals: [], isMonorepo: false, tools: [], sourceExt: DEFAULTS.sourceExt, ignoreSourceGlobs: DEFAULTS.ignoreSourceGlobs } : detect(ROOT);
   const created = [];
   const skipped = [];
@@ -1127,6 +1414,7 @@ commands.init = () => {
   if (!fs.existsSync(cfgPath)) {
     fs.mkdirSync(CTX, { recursive: true });
     const cfg = {
+      setupVersion: VERSION,
       profile: { langs: d.langs, kinds: d.kinds },
       maxPageLines: DEFAULTS.maxPageLines,
       maxAgentsLines: DEFAULTS.maxAgentsLines,
@@ -1137,7 +1425,74 @@ commands.init = () => {
     };
     fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
     created.push('context/.ctx.json (seeded from detected profile)');
-  } else skipped.push('context/.ctx.json');
+  } else {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      if (cfg.setupVersion !== VERSION) {
+        cfg.setupVersion = VERSION;
+        fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
+        created.push('context/.ctx.json (setupVersion → ' + VERSION + ')');
+      } else skipped.push('context/.ctx.json');
+    } catch {
+      skipped.push('context/.ctx.json (unparseable — fix by hand)');
+    }
+  }
+
+  // path-gated rules: thin pointers — content stays in the wiki, the rule just loads it at the right moment
+  const RULES = [];
+  if (uiOn(d, flags)) RULES.push(['frontend.md', ['src/components/**', 'src/app/**', 'app/**', 'components/**', '**/*.tsx', '**/*.jsx', '**/*.vue', '**/*.svelte'], 'context/ui-rules.md → context/ui-tokens.md → context/ui-registry.md']);
+  if (d.signals.includes('backend')) RULES.push(['api.md', ['src/api/**', 'src/routes/**', 'src/server/**', 'api/**', 'routes/**', 'routers/**', 'src/handlers/**'], 'context/api-contracts.md → context/code-standards.md']);
+  if (d.signals.includes('db')) RULES.push(['data.md', ['**/schema.ts', '**/schema.py', 'prisma/**', 'drizzle/**', '**/models/**', '**/migrations/**', '**/*.sql'], 'context/data-model.md → grep context/decisions.md for the area']);
+  if (d.langs.some((l) => l !== 'docs')) RULES.push(['testing.md', ['**/*.test.*', '**/*.spec.*', '**/__tests__/**', 'tests/**', 'test/**', '**/*_test.go'], 'context/testing.md']);
+  for (const [name, globs, read] of RULES) {
+    const dst = path.join(ROOT, '.claude', 'rules', name);
+    if (fs.existsSync(dst)) {
+      skipped.push('.claude/rules/' + name);
+      continue;
+    }
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.writeFileSync(
+      dst,
+      fs
+        .readFileSync(path.join(assetsDir, 'rule.md.template'), 'utf8')
+        .replace(/\{\{TODAY\}\}/g, today())
+        .replace(/\{\{NAME\}\}/g, name.replace(/\.md$/, ''))
+        .replace(/\{\{GLOBS\}\}/g, globs.join(', '))
+        .replace(/\{\{READ\}\}/g, read)
+    );
+    created.push('.claude/rules/' + name + ' (path-gated)');
+  }
+
+  // subagent memory: each agent owns a MEMORY.md it reads first and appends lessons to
+  for (const agent of ['context-explorer', 'context-reviewer']) {
+    const dst = path.join(CTX, 'agents', agent, 'MEMORY.md');
+    if (fs.existsSync(dst)) {
+      skipped.push('context/agents/' + agent + '/MEMORY.md');
+      continue;
+    }
+    fs.mkdirSync(path.dirname(dst), { recursive: true });
+    fs.writeFileSync(dst, fs.readFileSync(path.join(assetsDir, 'agent-memory.md.template'), 'utf8').replace(/\{\{TODAY\}\}/g, today()).replace(/\{\{AGENT\}\}/g, agent));
+    created.push('context/agents/' + agent + '/MEMORY.md');
+  }
+
+  // danger zones: nested AGENTS.md where the landmines are (auth, payments, migrations…)
+  if (flags.danger && flags.danger !== true) {
+    for (const zone of String(flags.danger).split(',').map((s) => s.trim()).filter(Boolean)) {
+      const abs = path.join(ROOT, zone);
+      if (!fs.existsSync(abs)) {
+        console.log(`! danger zone ${zone} does not exist — skipped`);
+        continue;
+      }
+      const dst = path.join(abs, 'AGENTS.md');
+      if (fs.existsSync(dst)) {
+        skipped.push(zone + '/AGENTS.md');
+        continue;
+      }
+      fs.writeFileSync(dst, fs.readFileSync(path.join(assetsDir, 'nested-AGENTS.md.template'), 'utf8').replace(/\{\{packages\/storefront\/\}\}/g, zone + '/'));
+      created.push(zone + '/AGENTS.md (danger zone)');
+    }
+  }
+
   for (const dir of ['context/feature-specs', 'context/codebase/modules', 'context/designs', 'context/screenshots', 'context/sources', 'context/archive', 'docs/adr', 'docs/runbooks']) {
     fs.mkdirSync(path.join(ROOT, dir), { recursive: true });
     const keep = path.join(ROOT, dir, '.gitkeep');
@@ -1145,8 +1500,11 @@ commands.init = () => {
   }
   const self = path.join(ROOT, 'context', 'ctx.mjs');
   if (path.resolve(self) !== path.resolve(SELF)) {
-    fs.copyFileSync(SELF, self);
-    created.push('context/ctx.mjs');
+    const srcBuf = fs.readFileSync(SELF);
+    if (!fs.existsSync(self) || !fs.readFileSync(self).equals(srcBuf)) {
+      fs.writeFileSync(self, srcBuf);
+      created.push('context/ctx.mjs (refreshed to skill version ' + VERSION + ')');
+    } else skipped.push('context/ctx.mjs');
   }
   const gi = path.join(ROOT, '.gitignore');
   const add = fs.readFileSync(path.join(assetsDir, 'gitignore.append'), 'utf8');
@@ -1176,7 +1534,11 @@ function die(msg) {
   console.error(msg);
   process.exit(1);
 }
-if (!cmd || cmd === 'help' || cmd === '--help' || !commands[cmd]) {
+if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '--version' || !commands[cmd]) {
+  if (cmd === '--version') {
+    console.log(`ctx ${VERSION}`);
+    process.exit(0);
+  }
   const doc = fs.readFileSync(SELF, 'utf8').split('*/')[0].replace(/^[\s\S]*?\/\*\*/, '').replace(/^ \* ?/gm, '');
   console.log(doc.trim());
   process.exit(cmd && cmd !== 'help' && cmd !== '--help' ? 1 : 0);

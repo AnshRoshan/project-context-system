@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.4 — self-installing from a link, repo/skill boundary made explicit
+
+**Added**
+- **`ctx install`** — the skill's own installer: clone the repo, run one command, the skill lands in the detected tool home (`~/.claude/skills`, `~/.qoder/skills`; `--tool`/`--dest` to steer). Ships only `SKILL.md` + `references/` + `assets/` + `scripts/`; re-runnable, overwrite-clean.
+- **GitHub-link flow** in README/INSTALL: paste the repo URL to any agent with one sentence and it installs + sets up the repo itself.
+- **Repo-boundary section** (README): what stays in the dev repo (CHANGELOG, tests, plugin metadata), what installs as the skill, what lands in the scaffolded project — each half enforced by a test (no lineage in the project copy; no dev history in the install).
+
+## v2.3 — teams, growth, and a clean room
+
+**Added**
+- **Multi-user support** (`references/multi-user.md`): one unit = one branch = one owner; per-unit files (specs, module pages, sources) keep parallel work conflict-free; per-person files already gitignored. **Merge-collision detection in lint**: Feature id twice in one tracker section (ERROR), two specs sharing a number (WARN), `ctx task add --spec` refuses claimed numbers. Verified end-to-end with a two-branch merge simulation.
+- **`ctx archive`** — the growth valve: log entries older than `archiveAfterDays` (180) and tracker completions older than `trackerKeepDays` (90) rotate into dated, still-greppable `context/archive/` files with a pointer left behind; `--dry-run`; prints the year-split plan when `decisions.md` outgrows its page budget. Nothing is ever deleted, only moved off the hot path.
+- **No-leak guarantee**: the CLI copy installed into a project carries no skill lineage (version chatter, attributions) — templates and the copied header ship neutral; covered by a test.
+
+## v2.2 — one command, and the repo keeps learning
+
+**Added**
+- **`ctx setup` — the single setup command**, greenfield or brownfield: profile detection + full scaffold + path-gated rules + subagent memory + a `codebase/map.md` **drafted from the real file census** (directory counts, manifest entry points, candidate module globs, `confidence: inferred`) + `ctx index` + 12-point `ctx doctor`. **Idempotent** (filled content never clobbered) and **upgrade-safe**: re-run after updating the skill — it refreshes `context/ctx.mjs` only when changed, adds new files, bumps `setupVersion`; `doctor` now FAILs stale projects and names the fix.
+- **Path-gated rules**: `.claude/rules/{frontend,api,data,testing}.md` generated per profile — `paths:` globs that load the right wiki pages only when the agent touches matching files. `ctx rules <file>` answers "what applies HERE" (rules + covering pages + nested AGENTS.md up the tree). Rules are pointers; knowledge stays in `context/`.
+- **Subagent memory**: `context/agents/<name>/MEMORY.md` — explorer and reviewer read theirs first, append ≤3 dated one-liners per run. Agent experience becomes version-controlled infrastructure (excluded from the page set; doctor checks it's wired).
+- **`AGENTS.md §Lessons`**: the self-improving section — every human correction becomes one "When X, do Y" line, newest on top, ≤20 lines; workflow-rules gained the matching recording duty.
+- **Danger zones**: `setup --danger "src/auth,src/payments"` drops a nested AGENTS.md where the landmines are — warnings at the moment of danger.
+- **Relative-path discipline**: setup runs from the project root (`node <skill-dir>/scripts/ctx.mjs setup` — no `--root`); the AGENTS.md invariant "paths and commands are project-relative, never machine-specific"; `ctx lint` now WARNs on absolute paths (`C:\Users\…`, `/home/…`) in any wiki page.
+- `.claude/settings.local.json` gitignored; `ctx --version`; `setupVersion` tracked in `.ctx.json`.
+
+**Rationale** — audited against the "Final Boss" / agent-kit setups circulating in 2026: kept the genuinely new ideas (context ladder rung 2 = path-gating, agent memory, lessons-from-corrections, danger-zone files), skipped the personal-assistant memory tree and workflow scripts (not codebase context; bloat).
+
 ## v2.1 — dynamic, delegating, self-honest
 
 **Added**

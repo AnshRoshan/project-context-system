@@ -1,9 +1,9 @@
 ---
 name: project-context-system
-description: Turns any project — any language, any shape (web app, API, CLI, library, mobile, data pipeline, docs, monorepo) — into a self-maintaining markdown knowledge base (Karpathy-style LLM wiki - raw sources, wiki pages, schema) so coding agents (Claude Code, Codex, Cursor, Copilot, Gemini, Qoder) get project context from files instead of re-reading the codebase. Use at the START of a project, when adopting an EXISTING codebase that lacks AGENTS.md / context/, when the user asks to set up agent files, build a context system or LLM wiki, document a codebase for AI, restore state in a new session, ingest PRDs/notes/docs, manage the task ledger, sync or lint context, or hand a project to another agent. Scaffolds AGENTS.md, CLAUDE.md, memory.md, context/ (router index, log, codebase map, module pages, specs, decisions, task ledger), docs/ and .claude/agents/; auto-detects the project profile; a zero-dependency ctx CLI routes tasks to pages, delegates code intelligence to better tools (graphify, ctags, aider) when present, detects stale docs from git, and enforces updates.
+description: Turns any project — any language, any shape (web app, API, CLI, library, mobile, data pipeline, docs, monorepo), greenfield or brownfield — into a self-maintaining markdown knowledge base (Karpathy-style LLM wiki - raw sources, wiki pages, schema) so coding agents (Claude Code, Codex, Cursor, Copilot, Gemini, Qoder) get project context from files instead of re-reading the codebase. One idempotent, upgrade-safe command sets everything up (ctx setup): auto-detects the project profile, scaffolds AGENTS.md, CLAUDE.md, memory.md, docs/, .claude/ (settings, path-gated rules, subagent definitions with their own memory), the full context/ wiki (router index, log, codebase map drafted from the real repo on brownfield, module pages, specs, decisions, task ledger), seeds config from the stack, and self-checks with doctor. Use at the START of a project, when adopting an EXISTING codebase, when the user asks to set up agent files, build a context system or LLM wiki, document a codebase for AI, restore state in a new session, ingest PRDs/notes/docs, manage the task ledger, sync or lint context, or hand a project to another agent. Delegates code intelligence to better tools (graphify, ctags, aider) when present; zero-dependency ctx CLI detects staleness from git and enforces updates.
 ---
 
-# Project Context System (v2.1)
+# Project Context System (v2.4)
 
 **Context is compiled, not retrieved.** The agent's understanding of the project is written once — at change time — into interlinked markdown pages, then read cheaply at task time. A fresh session, a teammate or a different AI tool orients from files in a few thousand tokens and never has to re-explore the repo or be re-told anything.
 
@@ -26,6 +26,7 @@ Architecture (details: `references/llm-wiki-pattern.md`): **Raw** (code + `conte
 | User drops PRD / notes / vendor docs / asks to "add this to the docs" | **INGEST** | `operations.md` §4 |
 | User asks a question about the project | **QUERY** | `operations.md` §2 |
 | Docs and code disagree / resumed after a break / `ctx stale` non-empty | **SYNC** | `operations.md` §7 |
+| Multiple people/agents on branches / merge collision / files getting heavy | **MULTI-USER** | `references/multi-user.md` (+ `ctx archive`) |
 | "Check the docs", phase boundary, pre-merge | **LINT** | `operations.md` §6 |
 | Ending a session / switching agents | **HANDOFF** | `operations.md` §8 |
 | Wiki feels big/noisy | **COMPACT** | `operations.md` §9, `context-routing.md` |
@@ -33,20 +34,20 @@ Architecture (details: `references/llm-wiki-pattern.md`): **Raw** (code + `conte
 ## Bootstrap (SETUP / ADOPT)
 
 1. **Planning conversation (~10 min) before generating anything.** Human + a planning AI are the architect; the coding agent is the engine. Pin down: what it does, who uses it, core flows, complex/risky parts, what is in v1 and what waits. Choose a build shape: **facade** (UI first), **journey** (one full path), **skateboard** (thin slice through everything), **tracer bullet** (one risky path end to end). Goals concrete and measurable. Never generate context files from guesses.
-2. **Scaffold** — from this skill's directory: `node scripts/ctx.mjs init --root <project>`. **Nothing about the project is assumed:** init detects the profile (manifests → languages, kinds, UI/DB/backend signals, installed agent-tool dirs) and scaffolds only what fits — plus always: `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md` import), `CLAUDE.local.md`, `memory.md`, `.claude/settings.json` (permissions + hooks), `.claude/agents/{context-explorer,context-reviewer}.md`, `docs/` (human-facing docs), `context/{index,log,overview,architecture,build-plan,code-standards,workflow-rules,library-docs,decisions,progress-tracker,current-issues}.md`, `context/codebase/{map.md,modules/}`, `context/{raw,sources,feature-specs,designs,screenshots,archive}/`, a `context/.ctx.json` seeded from the detected stack, `context/ctx.mjs`, and a merged `.gitignore`. Preview first with `ctx detect`; override with `--ui/--no-ui`, `--full`, `--pointers`. Never overwrites existing files. Tree and purpose of each: `references/context-files.md`.
-3. **Fill the templates from the planning conversation.** Replace every `{{PLACEHOLDER}}`; delete sections that don't apply (an honest 30-line page beats a padded 200-line one). Facts the agent can't discover from code go in; facts it can read from `package.json` don't. Fill `AGENTS.md` project facts and the **task-routing table in `context/index.md`** for this project's recurring task types.
-4. **ADOPT only:** run the audit in `codebase-wiki.md` (manifest → map → modules via parallel read-only subagents → cross-cutting → human confirmation → decisions archaeology) — but first `ctx tools`: where graphify/ctags/aider/dependency-cruiser exist, the structural pass is delegated to them and only distilled results enter the pages (`tool-delegation.md`). Pages start `confidence: inferred`; scope the next slice on top of reality — reuse, not regenerate.
+2. **Scaffold — one command, ever:** run the skill's `scripts/ctx.mjs setup` **from the project root** (`cd <project> && node <skill-dir>/scripts/ctx.mjs setup [--danger "src/auth,src/payments"]`) — no `--root` needed there. That is the last time any path outside the project is referenced: everything after is project-relative (`node context/ctx.mjs …`). Setup detects the project profile (manifests → languages, kinds, UI/DB/backend signals, agent-tool dirs) and does **everything mechanical**: creates `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md`), `CLAUDE.local.md`, `memory.md`, `.claude/{settings.json,rules/,agents/}`, `docs/`, the full `context/` wiki (router index, log, overview, architecture, build-plan, standards, workflow-rules, library-docs, decisions, task ledger, current-issues, codebase/, raw/, sources/, feature-specs/…), seeds `context/.ctx.json` from the stack, copies `context/ctx.mjs`, merges `.gitignore`, and on a **brownfield** repo drafts `codebase/map.md` from the real file census (entry points from the manifest, `confidence: inferred`). Path-gated `.claude/rules/*.md` load wiki pages only when the agent touches matching paths; `--danger` drops a nested AGENTS.md in landmine dirs. **Idempotent** (never clobbers filled content) and **upgrade-safe**: re-run after updating the skill — it refreshes the tooling, adds new files, bumps `setupVersion` (`ctx doctor` flags stale projects). Preview with `ctx detect`; flags `--ui/--no-ui`, `--full`, `--pointers`. Tree and purpose of each file: `references/context-files.md`.
+3. **Fill the templates from the planning conversation.** Replace every `{{PLACEHOLDER}}`; delete sections that don't apply (an honest 30-line page beats a padded 200-line one). Facts the agent can't discover from code go in; facts it can read from `package.json` don't. What the scaffolded repo must never contain: the skill's own version chatter, lineage or dev history — the project's wiki is about *this* project (templates ship neutral for exactly this reason). Fill `AGENTS.md` project facts and the **task-routing table in `context/index.md`** for this project's recurring task types.
+4. **ADOPT only:** `setup` already drafted the map from the file census — now run the audit in `codebase-wiki.md` (verify the draft → modules via parallel read-only subagents or the `context-explorer` agent → cross-cutting → human confirmation → decisions archaeology). First `ctx tools`: where graphify/ctags/aider/dependency-cruiser exist, the structural pass is delegated to them and only distilled results enter the pages (`tool-delegation.md`). Pages stay `confidence: inferred` until verified; scope the next slice on top of reality — reuse, not regenerate.
 5. **Name every tool in the stack and install its agent skill / fresh-docs MCP before speccing** (auth, ORM, payments, realtime…). Prefer agent-native tools (official skill/MCP). Record in `context/library-docs.md`.
-6. **Monorepo?** Root AGENTS.md for what's true everywhere + nested `AGENTS.md` per package (`assets/nested-AGENTS.md.template`); per-package wiki above ~150 files (`context-routing.md → Scaling`).
+6. **Monorepo or landmines?** Root AGENTS.md for what's true everywhere + nested `AGENTS.md` per package, and per risky directory (auth, payments, migrations — `setup --danger`); the warning loads at the moment of danger, not 4k tokens earlier. Per-package wiki above ~150 files (`context-routing.md → Scaling`).
 7. **Wire enforcement:** hooks are in `.claude/settings.json`; optional `assets/pre-commit.template` → `.git/hooks/pre-commit`; CI step `node context/ctx.mjs lint`. Other tools: `ctx init --pointers`.
-8. **Verify the scaffold like code:** `ctx index && ctx lint && ctx doctor`; confirm `@AGENTS.md` resolves (`/memory`, `/context` on Claude Code); confirm `.gitignore` covers `context/current-issues.md` + `CLAUDE.local.md`; attempt to read `.env` and confirm the deny rule blocks; change a covered file and confirm `ctx impact`/Stop hook react.
+8. **Verify the scaffold like code:** `setup` ended with a green `ctx doctor` — then confirm `@AGENTS.md` resolves (`/memory`, `/context` on Claude Code); attempt to read `.env` and confirm the deny rule blocks; change a covered file and confirm `ctx impact`/Stop hook react; `ctx rules <file>` returns the path-gated conventions for a real file in the tree.
 9. **First-session prompt** (give to the human):
 
 > Read AGENTS.md. Read context/index.md and memory.md, skim progress-tracker.md. Run `node context/ctx.mjs brief` for the task, read only what it returns (TL;DR first). Confirm when you're ready to build Feature 01.
 
 ## Core loop (RUN)
 
-1. **ORIENT** (≈2–5k tokens): `AGENTS.md` → `context/index.md` → `memory.md` → tracker skim → `ctx brief <files/keywords>` → TL;DRs. Don't scan the repo.
+1. **ORIENT** (≈2–5k tokens): `AGENTS.md` (incl. its Lessons) → `context/index.md` → `memory.md` → tracker skim → `ctx brief <files/keywords>` → TL;DRs; touching a file? `ctx rules <file>` for its path-gated conventions. Don't scan the repo.
 2. **PLAN**: spec in `context/feature-specs/NN-*.md` (`ctx new feature <name>`); ledger entry `ctx task add "<unit>"`; clarify gate (≤5 questions, one at a time, answers written into the spec); value-source gate; plan saved; human reviews 5–10 min and rejects weak plans.
 3. **BUILD** in scope: `ctx task start NN` (one unit at a time — the CLI enforces it); one boundary per unit (backend and UI are separate specs); UI first with mock data, logic second; logic ships its failing test first.
 4. **RECORD while working** (table below).
@@ -67,17 +68,18 @@ Architecture (details: `references/llm-wiki-pattern.md`): **Raw** (code + `conte
 | Gap in a context page | fix the page during the build |
 | New UI component | check `ui-registry.md` first; add after building if new |
 | Bug | `current-issues.md`: symptom + suspect file + fix direction + definition of success |
+| Human corrects you | one line in AGENTS.md **Lessons** ("When X, do Y", newest on top) — a correction not written down is a correction you'll receive again |
 | New raw source | INGEST (source summary → affected pages → `ctx log ingest`) |
 | Reusable answer | file as `type: query` page |
 | Session end | `memory.md` (state, exact next step, working set, open questions, context debt) + `ctx log` |
 | Feature/phase done | changelog + PR text from the **actual diff** |
-| Periodic / before handoff | SYNC + cold-start eval (`references/evals.md`) |
+| Periodic / before handoff | SYNC + cold-start eval (`references/evals.md`); `ctx archive` at phase boundaries to rotate log/tracker growth out of the hot files |
 
 **Decision record** (`assets/decisions.md.template`): `## D-NN: <title> — <date>` · Trigger · Options considered · Chosen + why · Lost alternative + honest reason · Cost paid (moving part / latency / tolerated incorrectness / money) · Reversibility (easy | painful) · Correctness policy (what may be slightly wrong; what never).
 
 ## Page rules (summary — spec in `references/page-format.md`)
 
-Every page under `context/` has frontmatter `title type status summary updated` (+ `tags`, `covers` for anything describing code, `confidence`), a `## TL;DR` first, ≤ ~160 lines, **why / contracts / invariants / gotchas — not what the code already says**, links by path + symbol never line numbers, no secrets. Search the catalog before creating a page. Conflicts are flagged to the human, never silently overwritten. Delete → archive.
+Every page under `context/` has frontmatter `title type status summary updated` (+ `tags`, `covers` for anything describing code, `confidence`), a `## TL;DR` first, ≤ ~160 lines, **why / contracts / invariants / gotchas — not what the code already says**, links by project-relative path + symbol, never line numbers, never machine-specific absolute paths, no secrets. Search the catalog before creating a page. Conflicts are flagged to the human, never silently overwritten. Delete → archive.
 
 ## Session protocol (summary — full: `references/session-protocol.md`)
 
@@ -90,7 +92,7 @@ Every page under `context/` has frontmatter `title type status summary updated` 
 
 ## SYNC / LINT in one paragraph
 
-Run at phase boundaries, before handoff, after merges, or when `ctx stale`/`ctx lint` complain: `ctx stale`, `ctx impact --since <ref>`, `ctx coverage`, `ctx lint`; re-read flagged pages against code; code vs human-written statement → flag and let the human decide; preserve human edits; fix what is plainly outdated; `ctx stamp` verified pages; audit AGENTS.md vs CLAUDE.md vs rules vs skills for contradictions; delete legacy `.cursorrules/.windsurfrules/AGENT.md`; clear `current-issues.md` before merges; `ctx log sync`.
+Run at phase boundaries, before handoff, after merges, or when `ctx stale`/`ctx lint` complain: `ctx stale`, `ctx impact --since <ref>`, `ctx coverage`, `ctx lint` (after a merge it also catches tracker/spec/decision ID collisions — see `multi-user.md`); re-read flagged pages against code; code vs human-written statement → flag and let the human decide; preserve human edits; fix what is plainly outdated; `ctx stamp` verified pages; `ctx archive` when hot files grow; audit AGENTS.md vs CLAUDE.md vs rules vs skills for contradictions; delete legacy `.cursorrules/.windsurfrules/AGENT.md`; clear `current-issues.md` before merges; `ctx log sync`.
 
 ## Safety (never delegated)
 
@@ -122,6 +124,7 @@ Tool-specific pointer files (`GEMINI.md`, Copilot, Cursor) only import AGENTS.md
 | `references/ctx-cli.md` | any `ctx` command, lint rules, config, hook wiring |
 | `references/evals.md` | proving the wiki works (cold-start test), regression guards |
 | `references/multi-agent-interop.md` | other tools, monorepos, parallel agents |
+| `references/multi-user.md` | teams: branch-per-unit ownership, merge-collision rules (lint-enforced), `ctx archive` rotation, keeping retrieval fast at scale |
 | `references/context-files.md` | per-file content spec for every scaffolded file |
 | `references/agents-md-rules.md` | authoring AGENTS.md/CLAUDE.md |
 | `references/session-protocol.md` · `recording-workflows.md` | full working loop; entry templates; error protocol |

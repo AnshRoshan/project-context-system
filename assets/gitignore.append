@@ -10,6 +10,7 @@ context/current-issues.md
 
 # Personal agent overrides (per-developer, never committed)
 CLAUDE.local.md
+.claude/settings.local.json
 
 # Dependencies & builds (adjust to stack)
 node_modules/
