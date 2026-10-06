@@ -5,8 +5,8 @@ status: active
 summary: The self-test harness — how to run it, what it covers, and the rule that makes it the contract
 tags: [tests, quality]
 covers: [tests/**]
-updated: 2026-10-06
-verified_at: 080a7adb7826
+updated: 2026-10-07
+verified_at: d5ff854c4cf9
 ---
 
 # Testing

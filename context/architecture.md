@@ -6,7 +6,7 @@ summary: The skill's four layers (router, deep docs, templates, CLI), the shippi
 tags: [architecture,stack,invariants]
 covers: [scripts/**, assets/**, references/**, tests/**, SKILL.md]
 updated: 2026-10-07
-verified_at: 47d649bcfa8c
+verified_at: d5ff854c4cf9
 ---
 
 # Architecture

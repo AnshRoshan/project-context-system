@@ -6,9 +6,9 @@ summary: The repo's two code files and the markdown layers around them — where
 tags: [map, structure, entry-points]
 covers: [scripts/ctx.mjs, tests/run.mjs]
 related: [architecture.md]
-updated: 2026-10-06
+updated: 2026-10-07
 confidence: verified
-verified_at: 080a7adb7826
+verified_at: d5ff854c4cf9
 ---
 
 # Codebase Map
