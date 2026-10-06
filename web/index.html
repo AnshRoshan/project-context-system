@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>project-context-system · your repo, knowable from files</title>
+<meta name="description" content="A drop-in skill that turns any repository into a self-maintaining markdown context wiki for coding agents. One command: ctx setup. Zero dependencies.">
+<meta property="og:title" content="project-context-system">
+<meta property="og:description" content="The model isn't your bottleneck. Your repo is. Compiled context for coding agents, enforced by tooling.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='14' fill='%230F172A'/><text x='16' y='72' font-family='monospace' font-size='58' fill='%2338BDF8'>c<tspan fill='%23F8FAFC'>tx</tspan></text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav">
+  <div class="nav-in">
+    <a class="wordmark" href="#top" aria-label="project-context-system home"><span class="ctx">c</span>tx<span class="slash">/</span><span class="wm-sub">project-context-system</span></a>
+    <nav aria-label="sections">
+      <a href="#ladder">Ladder</a>
+      <a href="#cli">CLI</a>
+      <a href="#teams">Teams</a>
+      <a href="#install">Install</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="https://github.com/AnshRoshan/project-context-system" rel="noopener">GitHub</a>
+      <a class="btn btn-solid" href="https://github.com/AnshRoshan/project-context-system#readme">Docs</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- HERO: asymmetric editorial grid; copy left, live wiki graph right -->
+<section class="hero" id="top">
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow mono">compiled context for coding agents</p>
+      <h1>Your repo, <em>knowable</em> from files.</h1>
+      <p class="lede">The model isn't your bottleneck. Your repo is. This skill makes your agent write down what it learns, once, into a markdown wiki. Every later session starts already knowing the project.</p>
+      <div class="install-line" id="install">
+        <code class="mono" id="install-cmd">node &lt;clone&gt;/scripts/ctx.mjs setup</code>
+        <button class="btn btn-copy" id="copy-install" type="button" aria-label="Copy the setup command">copy</button>
+      </div>
+      <p class="hero-note" id="copy-note" role="status">One command. Any language. Greenfield or brownfield. Re-run any time: it upgrades in place.</p>
+      <ul class="badges" aria-label="project status">
+        <li><a href="https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml"><img src="https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml/badge.svg" alt="CI status: passing on ubuntu, macOS and windows"></a></li>
+        <li><a href="https://github.com/AnshRoshan/project-context-system/releases"><img src="https://img.shields.io/github/v/release/AnshRoshan/project-context-system?color=38BDF8" alt="Latest release v2.4.1"></a></li>
+        <li><span class="badge mono">0 dependencies</span></li>
+        <li><span class="badge mono">47/47 tests</span></li>
+      </ul>
+    </div>
+    <figure class="hero-graph" aria-label="Interactive diagram of the project wiki. The graph is decorative; the same information appears in the legend below.">
+      <div id="wiki-graph" role="img" aria-label="Force-directed graph of context wiki pages linked to AGENTS.md. Hover nodes for their summary. Drag to explore."></div>
+      <figcaption>
+        <span class="dot dot-page"></span> wiki page
+        <span class="dot dot-code"></span> covered code
+        <span class="dot dot-rule"></span> path-gated rule
+        <span class="hint">hover · drag · click to pin</span>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- PROBLEM: interactive cost comparison -->
+<section class="section" id="cost">
+  <div class="sec-head">
+    <p class="eyebrow mono">the cost of forgetting</p>
+    <h2>Same model. Two repos. Different worlds.</h2>
+    <p class="sec-lede">Without a wiki, every session re-explores the codebase from zero. With one, orientation is a few thousand tokens of files written once, at change time. Drag the session counter.</p>
+  </div>
+  <div class="cost-grid">
+    <div class="chart-card">
+      <svg id="cost-chart" viewBox="0 0 640 300" role="img" aria-label="Line chart comparing tokens spent per session: re-exploration stays flat and high, wiki orientation stays low."></svg>
+      <div class="chart-legend"><span class="mono sw sw-bad">re-exploring the repo</span><span class="mono sw sw-good">reading the wiki</span></div>
+    </div>
+    <div class="cost-readout">
+      <label class="slider-label" for="session-slider">Session number: <output class="mono" id="session-out">12</output></label>
+      <input type="range" id="session-slider" min="1" max="40" value="12" step="1">
+      <dl class="cost-stats">
+        <div><dt>chatbot repo</dt><dd class="mono stat-bad" id="stat-cold"></dd></div>
+        <div><dt>this system</dt><dd class="mono stat-good" id="stat-warm"></dd></div>
+        <div><dt>spent re-deriving by session 40</dt><dd class="mono" id="stat-total"></dd></div>
+      </dl>
+      <p class="cost-note">The cold line is real: agents grep, read, and re-reason the same facts every session. The warm line is the same task after <code class="mono">ctx brief</code> routes it to three TL;DRs.</p>
+    </div>
+  </div>
+</section>
+
+<!-- LADDER: the four rungs, interactive -->
+<section class="section" id="ladder">
+  <div class="sec-head">
+    <p class="eyebrow mono">architecture</p>
+    <h2>Stop asking what goes in AGENTS.md. Decide what loads <em>when</em>.</h2>
+  </div>
+  <div class="ladder-grid" id="ladder-tabs">
+    <div class="rungs" role="tablist" aria-label="The context ladder">
+      <button role="tab" aria-selected="true" class="rung is-active" id="rung-1" data-rung="0"><span class="rung-n mono">01</span> every session<span class="rung-sub">AGENTS.md ≤120 lines, routed</span></button>
+      <button role="tab" aria-selected="false" class="rung" id="rung-2" data-rung="1"><span class="rung-n mono">02</span> path-gated<span class="rung-sub">rules load only for matching files</span></button>
+      <button role="tab" aria-selected="false" class="rung" id="rung-3" data-rung="2"><span class="rung-n mono">03</span> on invoke<span class="rung-sub">skill references, just in time</span></button>
+      <button role="tab" aria-selected="false" class="rung" id="rung-4" data-rung="3"><span class="rung-n mono">04</span> isolated<span class="rung-sub">subagents with their own memory</span></button>
+    </div>
+    <div class="rung-body" role="tabpanel" aria-live="polite">
+      <h3 id="rung-title"></h3>
+      <p id="rung-text"></p>
+      <pre class="mono" id="rung-code"></pre>
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINE: raw -> wiki -> schema -->
+<section class="section" id="pipeline">
+  <div class="sec-head">
+    <p class="eyebrow mono">how it holds</p>
+    <h2>Documentation is part of the diff. Tooling checks it.</h2>
+    <p class="sec-lede">Code changed without updating the pages that describe it blocks the session from ending. Not a policy. A hook.</p>
+  </div>
+  <div class="pipe" id="pipe">
+    <button class="pipe-node" data-i="0"><span class="mono pipe-k">raw</span><span>code + <code class="mono">context/raw/</code></span><small>immutable truth</small></button>
+    <svg class="pipe-arrow" viewBox="0 0 48 16" aria-hidden="true"><path d="M0 8h40m0 0-6-6m6 6-6 6" /></svg>
+    <button class="pipe-node" data-i="1"><span class="mono pipe-k">wiki</span><span><code class="mono">context/**</code> pages</span><small>agent-owned, human-reviewed</small></button>
+    <svg class="pipe-arrow" viewBox="0 0 48 16" aria-hidden="true"><path d="M0 8h40m0 0-6-6m6 6-6 6" /></svg>
+    <button class="pipe-node" data-i="2"><span class="mono pipe-k">schema</span><span><code class="mono">AGENTS.md</code> + router</span><small>how to maintain it</small></button>
+  </div>
+  <p class="pipe-detail" id="pipe-detail" role="status"></p>
+</section>
+
+<!-- CLI: real terminal, clickable commands -->
+<section class="section" id="cli">
+  <div class="sec-head">
+    <p class="eyebrow mono">the surface</p>
+    <h2>One file. Sixteen commands. Your project carries it forever.</h2>
+  </div>
+  <div class="term-wrap">
+    <div class="term" id="term" aria-label="Terminal demo. Pick a command to run it." role="textbox" aria-readonly="true" tabindex="0">
+      <div class="term-bar"><span class="tdot"></span><span class="tdot"></span><span class="tdot"></span><span class="term-title mono">your-project: ctx</span></div>
+      <pre class="term-body mono" id="term-out"></pre>
+    </div>
+    <nav class="cmd-chips" aria-label="Demo commands">
+      <button class="chip is-active mono" data-cmd="brief">brief</button>
+      <button class="chip mono" data-cmd="task">task start</button>
+      <button class="chip mono" data-cmd="impact">impact</button>
+      <button class="chip mono" data-cmd="archive">archive</button>
+      <button class="chip mono" data-cmd="doctor">doctor</button>
+    </nav>
+  </div>
+  <p class="cli-more">…plus <code class="mono">setup detect tools rules stale lint index coverage log new stamp status task archive install hook</code>: all with <code class="mono">--json</code> for CI.</p>
+</section>
+
+<!-- LEDGER + TEAMS -->
+<section class="section" id="teams">
+  <div class="sec-head">
+    <p class="eyebrow mono">ten people, ten features</p>
+    <h2>One unit. One branch. One owner.</h2>
+    <p class="sec-lede">The ledger is the only place a unit's state lives. Collisions from parallel branches surface as lint errors, not arguments. Growth rotates into dated archives. Watch it.</p>
+  </div>
+  <div class="ledger" id="ledger">
+    <div class="lcol" data-col="next"><h4 class="mono">Up next</h4><ul id="lc-next"></ul></div>
+    <div class="lcol lcol-now" data-col="now"><h4 class="mono">In progress <span class="one mono">max 1</span></h4><ul id="lc-now"></ul></div>
+    <div class="lcol" data-col="blocked"><h4 class="mono">Blocked</h4><ul id="lc-blocked"></ul></div>
+    <div class="lcol" data-col="done"><h4 class="mono">Completed</h4><ul id="lc-done"></ul></div>
+  </div>
+  <div class="ledger-ctl">
+    <button class="btn btn-solid" id="ledger-run" type="button">run the week</button>
+    <p class="mono ledger-msg" id="ledger-msg" role="status">press to simulate two branches merging into a claimed number</p>
+  </div>
+  <div class="proof-row">
+    <div class="proof"><strong>Dogfooded</strong><span>this repo runs its own context system; lint 0 errors, 0 warnings</span></div>
+    <div class="proof"><strong>Delegates</strong><span>finds graphify, ctags, aider, dependency-cruiser and hands them the code-map work</span></div>
+    <div class="proof"><strong>No leakage</strong><span>your project gets pages about your project; no version chatter, test-guarded</span></div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="section cta" id="start">
+  <div class="cta-grid">
+    <div>
+      <h2>Give your agent the repo, not the rerun.</h2>
+      <p class="sec-lede">Paste the link to your agent, or run the two commands. Setup detects your stack, scaffolds the wiki, drafts the codebase map on brownfield, and self-checks with twelve doctor checks.</p>
+    </div>
+    <ol class="steps mono">
+      <li><span>1</span><code>git clone https://github.com/AnshRoshan/project-context-system</code></li>
+      <li><span>2</span><code>node project-context-system/scripts/ctx.mjs install</code></li>
+      <li><span>3</span><code>cd your-project &amp;&amp; ctx setup</code></li>
+    </ol>
+  </div>
+  <div class="cta-links">
+    <a class="btn btn-solid" href="https://github.com/AnshRoshan/project-context-system">Star on GitHub</a>
+    <a class="btn btn-ghost" href="https://github.com/AnshRoshan/project-context-system/blob/main/INSTALL.md">Install guide</a>
+    <a class="btn btn-ghost" href="https://github.com/AnshRoshan/project-context-system/releases">Release notes</a>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <p class="mono">project-context-system · MIT · built by <a href="https://github.com/AnshRoshan">Ansh Roshan</a></p>
+  <nav aria-label="footer">
+    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/SKILL.md">SKILL.md</a>
+    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/references/operations.md">operations</a>
+    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/references/multi-user.md">multi-user</a>
+    <a href="https://github.com/AnshRoshan/project-context-system/blob/main/CHANGELOG.md">changelog</a>
+  </nav>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
