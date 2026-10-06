@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "project-context-system",
+  "description": "Agent context management that stays true: a compiled markdown wiki per project, a zero-dependency ctx CLI, and hooks that enforce it.",
+  "owner": {
+    "name": "Ansh"
+  },
+  "plugins": [
+    {
+      "name": "project-context-system",
+      "source": "./",
+      "description": "Scaffolds a self-maintaining context wiki (AGENTS.md, context/ pages, memory.md) and ships the ctx CLI plus SessionStart/Stop hooks so agent knowledge is compiled once and kept current instead of re-derived every session.",
+      "version": "3.1.0",
+      "category": "productivity"
+    }
+  ]
+}

@@ -1,4 +1,18 @@
+---
+title: UI Registry
+type: ui
+status: active
+summary: Living catalog of built components — check here before building any UI
+tags: [ui,components,registry]
+covers: [{{src/components/**}}]
+updated: {{TODAY}}
+---
+
 # UI Registry
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 Living catalog of built components. Starts EMPTY on purpose — it reflects what actually exists.
 

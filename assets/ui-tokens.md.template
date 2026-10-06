@@ -1,4 +1,17 @@
+---
+title: UI Tokens
+type: ui
+status: active
+summary: Every color, spacing, radius and type value as CSS variables — no hard-coded hex anywhere
+tags: [ui,design-tokens,css]
+updated: {{TODAY}}
+---
+
 # UI Tokens
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 Every visual value lives here as a CSS variable. Code contains NO hard-coded hex values — ever.
 

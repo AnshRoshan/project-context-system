@@ -1,4 +1,17 @@
+---
+title: Code Standards
+type: standards
+status: active
+summary: Language, naming, framework conventions, error handling and quality gates
+tags: [standards,conventions,style]
+updated: {{TODAY}}
+---
+
 # Code Standards
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 ## Language & types
 

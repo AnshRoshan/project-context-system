@@ -1,0 +1,17 @@
+---
+title: Glossary
+type: glossary
+status: active
+summary: Domain vocabulary — one meaning per term, so agent and humans stop talking past each other
+tags: [terminology, domain]
+updated: {{TODAY}}
+---
+
+# Glossary
+
+## TL;DR
+One meaning per term. If a word is overloaded in conversation, split it here and use the precise terms in specs and code. Confirm new terms with the human during clarification, then add them.
+
+| Term | Meaning in this project | Not to be confused with | Code name |
+|---|---|---|---|
+| {{Workspace}} | {{a billing + permission boundary containing projects}} | {{"team" (a user grouping inside a workspace)}} | {{`orgs` table}} |

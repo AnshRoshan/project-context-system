@@ -1,47 +1,59 @@
 # AGENTS.md
 
-Master instruction file. Every coding agent reads this first, in every session, in every tool (Claude Code reads CLAUDE.md, which points here).
+Schema file for every coding agent in every tool (Claude Code reads CLAUDE.md, which imports this). This project keeps its knowledge in files: **read the wiki, don't re-explore the repo.**
 
-## Reading order (tiered — never load the whole folder blindly)
+## Orient — every session, in this order (≈ 2–5k tokens)
 
-ALWAYS read before any work:
-1. context/overview.md
-2. context/workflow-rules.md
-3. context/progress-tracker.md
-4. memory.md
+1. `context/index.md` — task routing + one-line catalog of every page
+2. `memory.md` — current state, exact next step, open questions
+3. `context/progress-tracker.md` — skim: what is in progress / done
 
-READ WHEN THE TASK TOUCHES IT:
-- context/feature-specs/NN-*.md — the unit being built
-- context/code-standards.md — before writing any code
-- context/architecture.md + context/library-docs.md — before touching that subsystem or library
-- context/ui-tokens.md, ui-rules.md, ui-registry.md — only for UI units
-- context/decisions.md — before making or repeating any decision
-- context/build-plan.md — when sequencing or adding features
+Then route, don't browse: `node context/ctx.mjs brief <files or keywords of the task>` → read only the pages it returns, **`## TL;DR` first**. Open source files only for what the pages don't answer. If a page is marked stale (`node context/ctx.mjs stale`) or `confidence` ≠ verified, check the code before trusting it.
 
-Then: update the progress tracker after every change.
+Before any code change also read `context/workflow-rules.md` and `context/code-standards.md`.
 
 ## Project facts
 
-- Package manager: {{pnpm|npm|bun}}
-- Run dev: `{{npm run dev}}`
-- Test: `{{npm test}}` — Typecheck: `{{npm run typecheck}}` — Build: `{{npm run build}}`
-- Database access: {{e.g. Drizzle only; schema lives in src/db/schema}}; never write raw SQL unless specifically requested
+- Stack: {{languages/kinds — see `ctx detect`}} · Toolchain: {{package manager / build tool}} · Dev: `{{dev command}}`
+- Test: `{{test command}}` · Typecheck/lint: `{{check command}}` · Build: `{{build command}}`
+- Database access: {{e.g. Drizzle only; schema in src/db/schema.ts}}; no raw SQL unless asked
 - {{e.g. Never modify migration files manually}}
-- {{e.g. API handlers live in src/api/handlers}}
-- Design: {{e.g. editorial, product-focused, reuse the design system, no dashboard-style UI, no purple gradients}}
+- Design: {{e.g. editorial, reuse the design system, no purple gradients}}
 
-## Invariant rules (true every session, never change mid-build)
+## Invariants (true every session)
 
-- No hard-coded hex values; every visual value comes from context/ui-tokens.md
-- Update context/progress-tracker.md when starting and when finishing every unit
-- Before touching any third-party library, load its skill/docs (see context/library-docs.md) and only then act
-- Work on one feature unit or subsystem at a time; never combine unrelated system boundaries in a single implementation step
-- Any decision that is hard, ambiguous, or changes an invariant: stop, write the options, and ask the human before proceeding
+- Work on one feature unit / system boundary at a time. Stay inside the spec's scope.
+- Hard, ambiguous or invariant-changing decision → stop, write the options, ask the human. Never decide silently.
+- Before touching a third-party library, read its entry in `context/library-docs.md` (skill/MCP/docs first).
+- No hard-coded hex values; visual values come from `context/ui-tokens.md`.
+- Secrets: never read `.env*`, never paste values anywhere. Env var **names** only.
+- Every value a feature shows or computes has a named source (value-source gate) — no source = ask.
 
-## Skills
+## Maintain the wiki (you own it; the human reviews)
 
-{{List every installed skill/command and exactly when to use it, one line each}}
+Record **while working**, not at the end:
+
+| Event | Do |
+|---|---|
+| Start / finish a unit | `node context/ctx.mjs task start NN` / `task done NN -m "concrete versions, paths, env names"` (one unit In progress at a time; blocked → `task block NN "why"`) |
+| Hard technical decision | `decisions.md` entry (D-NN, options, lost alternative, cost) |
+| Bug found | `current-issues.md` (symptom, suspect file, fix direction, definition of success) |
+| Code changed | update the page(s) that `covers` it — run `node context/ctx.mjs impact`; every ✗ gets fixed or confirmed unchanged, then `ctx stamp <page>` |
+| New area learned by reading code | write/extend a page: `ctx new module <name> --covers "src/x/**"` — never leave knowledge only in chat |
+| New source material (PRD, notes, vendor docs) | INGEST: `context/raw/` → `sources/` summary → update affected pages → `ctx log ingest` |
+| Useful answer to a question | file it back as a page (type `query`) so it is never re-derived |
+| End of session | `memory.md` (state, exact next step, open questions) + `ctx log` + `ctx index` + `ctx lint` |
+
+Page rules: frontmatter required (`title type status summary updated`, plus `covers` for anything describing code); `## TL;DR` first; why/contracts/gotchas — not what the code already says; link files by path + symbol, never line numbers. Code and page disagree → flag it to the human; never silently overwrite either. Full rules: skill `references/page-format.md`.
+
+## Skills & commands
+
+- `node context/ctx.mjs` — `brief` `task` `impact` `stale` `lint` `doctor` `index` `coverage` `log` `stamp` `new` `status` `detect` `tools`
+- `project-context-system` skill — SETUP / ADOPT / INGEST / QUERY / LINT / HANDOFF procedures
+- **Delegate, don't hand-roll:** `ctx tools` lists code-intelligence tools here (graphify, ctags, aider, …). For a code map or dependency questions, run the tool first and distill its output into the wiki — never re-explore the repo by hand when a tool already indexed it
+- **Humans read `docs/`, agents read `context/`** — one fact, one home; docs pages link into the wiki
+- {{List every other installed skill/MCP and exactly when to use it, one line each}}
 
 ## Verification
 
-Run lint + typecheck + build before declaring any unit done. Report the results. Show the important changes made and explain anything the human should review.
+Run lint + typecheck + build + `node context/ctx.mjs lint` before declaring a unit done. Report results and what the human should review.

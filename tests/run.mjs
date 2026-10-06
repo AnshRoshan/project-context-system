@@ -435,6 +435,55 @@ test('unknown command prints usage instead of a stack trace', (dir) => {
   assertContains(r.out, 'brief');
 });
 
+test('init adapts the scaffold to the detected project profile', (dir) => {
+  fs.rmSync(path.join(dir, 'package.json'));
+  fs.writeFileSync(path.join(dir, 'pyproject.toml'), '[project]\nname="x"\ndependencies=["fastapi","sqlalchemy"]\n');
+  const r = sh('node', [CTX_SRC, 'init', '--root', dir], dir);
+  assert(r.code === 0, `init failed: ${r.out}`);
+  assert(!fs.existsSync(path.join(dir, 'context', 'ui-tokens.md')), 'UI pages created for a headless API');
+  assert(fs.existsSync(path.join(dir, 'context', 'data-model.md')), 'data-model missing for a DB project');
+  assert(fs.existsSync(path.join(dir, 'docs', 'README.md')), 'docs/ not scaffolded');
+  assert(fs.existsSync(path.join(dir, '.claude', 'agents', 'context-explorer.md')), 'subagent definitions not scaffolded');
+  const cfg = JSON.parse(fs.readFileSync(path.join(dir, 'context', '.ctx.json'), 'utf8'));
+  assert(cfg.sourceExt.includes('.py'), 'config not seeded from the python profile');
+  assert(!cfg.sourceExt.includes('.tsx'), 'config carries extensions the project cannot have');
+});
+
+test('a frontend profile gets the UI pages', (dir) => {
+  fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'ui', dependencies: { react: '^19.0.0', next: '^15.0.0' } }));
+  const r = sh('node', [CTX_SRC, 'init', '--root', dir], dir);
+  assert(r.code === 0, `init failed: ${r.out}`);
+  assert(fs.existsSync(path.join(dir, 'context', 'ui-tokens.md')), 'UI pages missing for a React project');
+});
+
+test('task ledger enforces the state machine', (dir) => {
+  initRepo(dir);
+  let r = ctx(dir, 'task', 'add', 'login flow');
+  assert(r.code === 0 && /Feature 01/.test(r.out), `add failed: ${r.out}`);
+  ctx(dir, 'task', 'add', 'billing');
+  r = ctx(dir, 'task', 'start', '1');
+  assert(r.code === 0, `start failed: ${r.out}`);
+  r = ctx(dir, 'task', 'start', '2');
+  assert(r.code !== 0 && /one unit/.test(r.out), 'a second unit must not start while one is active');
+  r = ctx(dir, 'task', 'done', '1');
+  assert(r.code !== 0, 'done without concrete details must fail');
+  r = ctx(dir, 'task', 'done', '1', '-m', 'session.ts v2, env AUTH_URL');
+  assert(r.code === 0, `done failed: ${r.out}`);
+  const tr = fs.readFileSync(path.join(dir, 'context', 'progress-tracker.md'), 'utf8');
+  assert(/## Completed[\s\S]*Feature 01: login flow — \d{4}-\d{2}-\d{2} — session\.ts v2/.test(tr), `done lost the title:\n${tr}`);
+  assert(!/## In progress\n\n- Feature/.test(tr), 'the finished unit is still In progress');
+  const j = JSON.parse(ctx(dir, 'task', 'list', '--json').out);
+  assert(j.command === 'task' && typeof j.ok === 'boolean', 'task list --json contract');
+});
+
+test('detect and tools honour the json contract', (dir) => {
+  initRepo(dir);
+  const d = JSON.parse(ctx(dir, 'detect', '--json').out);
+  assert(d.command === 'detect' && Array.isArray(d.langs) && Array.isArray(d.kinds), `detect json: ${JSON.stringify(d)}`);
+  const t = JSON.parse(ctx(dir, 'tools', '--json').out);
+  assert(t.command === 'tools' && Array.isArray(t.available), `tools json: ${JSON.stringify(t).slice(0, 200)}`);
+});
+
 /* ----------------------------------------------------------------- summary */
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {

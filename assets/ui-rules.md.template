@@ -1,4 +1,17 @@
+---
+title: UI Rules
+type: ui
+status: active
+summary: Design-system behavior: fonts, layout, cards, buttons, states, and what is banned
+tags: [ui,design-system]
+updated: {{TODAY}}
+---
+
 # UI Rules
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 Design-system behavior. Generated from Figma via MCP when a source file exists; otherwise written from the planning conversation. The agent MATCHES context/designs/ references — it does not invent.
 

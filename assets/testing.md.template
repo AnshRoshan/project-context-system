@@ -1,0 +1,24 @@
+---
+title: Testing
+type: guide
+status: draft
+summary: How tests are run and written here — commands, layout, what must be covered, fixtures
+tags: [tests, quality]
+covers: [{{tests/**}}]
+updated: {{TODAY}}
+---
+
+# Testing
+
+## TL;DR
+- Run all: `{{npm test}}` · one file: `{{npm test -- path}}` · typecheck: `{{npm run typecheck}}` · build: `{{npm run build}}`
+- Logic-bearing code ships its failing test first (RED → GREEN → REFACTOR). Every bug fix ships a test that fails without the fix.
+
+## Layout & conventions
+{{Where tests live, naming, fixtures/factories, how the DB is handled in tests}}
+
+## Must be covered
+{{money math, auth/ownership checks, parsing, state machines…}}
+
+## Known flaky / slow
+{{...}}

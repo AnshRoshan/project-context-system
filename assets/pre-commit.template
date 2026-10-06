@@ -1,0 +1,23 @@
+#!/bin/sh
+# Optional git pre-commit hook: keeps the context wiki honest.
+# Install:  cp <skill>/assets/pre-commit.template .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# Behavior: lint errors BLOCK the commit; stale/impact findings only WARN (set CTX_STRICT=1 to block on them).
+
+[ -f context/ctx.mjs ] || exit 0
+
+node context/ctx.mjs lint >/tmp/ctx-lint.$$ 2>&1
+status=$?
+grep -E '^(ERROR|WARN )' /tmp/ctx-lint.$$ | head -20
+rm -f /tmp/ctx-lint.$$
+
+if [ $status -ne 0 ]; then
+  echo "ctx: lint errors — fix context pages before committing (node context/ctx.mjs lint)"
+  exit 1
+fi
+
+if [ "$CTX_STRICT" = "1" ]; then
+  node context/ctx.mjs impact --check || { echo "ctx: pages covering changed code were not updated"; exit 1; }
+else
+  node context/ctx.mjs impact | grep -E '✗|UNCOVERED' >/dev/null && echo "ctx: heads-up — some context pages may need updating (node context/ctx.mjs impact)"
+fi
+exit 0

@@ -1,149 +1,130 @@
 ---
 name: project-context-system
-description: Drop-in engineering system for any coding agent (Claude Code, Codex, Cursor, Copilot, Qoder). Use at the START of any project, or when a project lacks AGENTS.md / context/ / memory files, to scaffold the complete file system - AGENTS.md entry point, CLAUDE.md, .claude/ settings, rules, local overrides, context/ folder with architecture, build plan, feature specs, progress tracker, decision log, issue log, memory.md handoff, .gitignore - and to run the daily session protocol that records every decision and piece of progress. Also use when the user asks to "set up" agent files, restore state in a new session, sync context files with reality, or hand a project to another agent.
+description: Turns any project — any language, any shape (web app, API, CLI, library, mobile, data pipeline, docs, monorepo) — into a self-maintaining markdown knowledge base (Karpathy-style LLM wiki - raw sources, wiki pages, schema) so coding agents (Claude Code, Codex, Cursor, Copilot, Gemini, Qoder) get project context from files instead of re-reading the codebase. Use at the START of a project, when adopting an EXISTING codebase that lacks AGENTS.md / context/, when the user asks to set up agent files, build a context system or LLM wiki, document a codebase for AI, restore state in a new session, ingest PRDs/notes/docs, manage the task ledger, sync or lint context, or hand a project to another agent. Scaffolds AGENTS.md, CLAUDE.md, memory.md, context/ (router index, log, codebase map, module pages, specs, decisions, task ledger), docs/ and .claude/agents/; auto-detects the project profile; a zero-dependency ctx CLI routes tasks to pages, delegates code intelligence to better tools (graphify, ctags, aider) when present, detects stale docs from git, and enforces updates.
 ---
 
-# Project Context System
+# Project Context System (v2.1)
 
-Four laws, from the source methodology:
+**Context is compiled, not retrieved.** The agent's understanding of the project is written once — at change time — into interlinked markdown pages, then read cheaply at task time. A fresh session, a teammate or a different AI tool orients from files in a few thousand tokens and never has to re-explore the repo or be re-told anything.
 
-1. **Decide what to build first.** A line changed in a plan is free; a decision already spread through the codebase is a rewrite.
-2. **Make the hard calls on purpose.** Every addition gets an explicit cost recorded.
-3. **Keep the state in files.** The agent updates them as it works, every session.
-4. **Never let the AI decide something important without telling the human.**
+Five laws:
+1. **Decide what to build first.** A line changed in a plan is free; a decision spread through the codebase is a rewrite.
+2. **Make the hard calls on purpose.** Every addition gets an explicit cost recorded (`decisions.md`).
+3. **Keep the state in files.** The agent updates them *while* working, every session — enforced by tooling, not goodwill.
+4. **Never let the AI decide something important without telling the human.** Conflicts and gaps are flagged, never silently resolved.
+5. **Read cheap, then deep.** index line → `## TL;DR` → full page → source code. Stop at the first level that answers.
 
-Project knowledge lives in files, not in a chat that vanishes. A fresh session, a teammate, or a different AI tool reads the files and picks up with zero re-explaining.
+Architecture (details: `references/llm-wiki-pattern.md`): **Raw** (code + `context/raw/`, immutable) → **Wiki** (`context/**` pages with frontmatter, agent-owned, human-reviewed) → **Schema** (`AGENTS.md` + `context/index.md` routing). Operations: **ingest · query · lint**, plus **update-on-change** (`ctx impact`). Navigation: `context/index.md` (catalog) + `context/log.md` (timeline).
 
 ## Mode detection
 
-- Project root has no `AGENTS.md` + `context/` → **SET UP** (run the Bootstrap below).
-- They exist, user starts working → **RUN** (Session Protocol in `references/session-protocol.md`).
-- Docs disagree with the repo, or work resumed after a break → **SYNC** (Sync pass below).
+| Situation | Mode | Go to |
+|---|---|---|
+| New project, no `AGENTS.md` + `context/` | **SETUP** | Bootstrap below |
+| Existing code, no wiki | **ADOPT** | `references/codebase-wiki.md` → Adopt procedure |
+| Wiki exists, user starts work | **RUN** | ORIENT → BUILD (`references/operations.md`) |
+| User drops PRD / notes / vendor docs / asks to "add this to the docs" | **INGEST** | `operations.md` §4 |
+| User asks a question about the project | **QUERY** | `operations.md` §2 |
+| Docs and code disagree / resumed after a break / `ctx stale` non-empty | **SYNC** | `operations.md` §7 |
+| "Check the docs", phase boundary, pre-merge | **LINT** | `operations.md` §6 |
+| Ending a session / switching agents | **HANDOFF** | `operations.md` §8 |
+| Wiki feels big/noisy | **COMPACT** | `operations.md` §9, `context-routing.md` |
 
-## Bootstrap - scaffold every file and folder
+## Bootstrap (SETUP / ADOPT)
 
-Do this in order. Run the planning conversation first; never generate context files from guesses.
+1. **Planning conversation (~10 min) before generating anything.** Human + a planning AI are the architect; the coding agent is the engine. Pin down: what it does, who uses it, core flows, complex/risky parts, what is in v1 and what waits. Choose a build shape: **facade** (UI first), **journey** (one full path), **skateboard** (thin slice through everything), **tracer bullet** (one risky path end to end). Goals concrete and measurable. Never generate context files from guesses.
+2. **Scaffold** — from this skill's directory: `node scripts/ctx.mjs init --root <project>`. **Nothing about the project is assumed:** init detects the profile (manifests → languages, kinds, UI/DB/backend signals, installed agent-tool dirs) and scaffolds only what fits — plus always: `AGENTS.md`, `CLAUDE.md` (`@AGENTS.md` import), `CLAUDE.local.md`, `memory.md`, `.claude/settings.json` (permissions + hooks), `.claude/agents/{context-explorer,context-reviewer}.md`, `docs/` (human-facing docs), `context/{index,log,overview,architecture,build-plan,code-standards,workflow-rules,library-docs,decisions,progress-tracker,current-issues}.md`, `context/codebase/{map.md,modules/}`, `context/{raw,sources,feature-specs,designs,screenshots,archive}/`, a `context/.ctx.json` seeded from the detected stack, `context/ctx.mjs`, and a merged `.gitignore`. Preview first with `ctx detect`; override with `--ui/--no-ui`, `--full`, `--pointers`. Never overwrites existing files. Tree and purpose of each: `references/context-files.md`.
+3. **Fill the templates from the planning conversation.** Replace every `{{PLACEHOLDER}}`; delete sections that don't apply (an honest 30-line page beats a padded 200-line one). Facts the agent can't discover from code go in; facts it can read from `package.json` don't. Fill `AGENTS.md` project facts and the **task-routing table in `context/index.md`** for this project's recurring task types.
+4. **ADOPT only:** run the audit in `codebase-wiki.md` (manifest → map → modules via parallel read-only subagents → cross-cutting → human confirmation → decisions archaeology) — but first `ctx tools`: where graphify/ctags/aider/dependency-cruiser exist, the structural pass is delegated to them and only distilled results enter the pages (`tool-delegation.md`). Pages start `confidence: inferred`; scope the next slice on top of reality — reuse, not regenerate.
+5. **Name every tool in the stack and install its agent skill / fresh-docs MCP before speccing** (auth, ORM, payments, realtime…). Prefer agent-native tools (official skill/MCP). Record in `context/library-docs.md`.
+6. **Monorepo?** Root AGENTS.md for what's true everywhere + nested `AGENTS.md` per package (`assets/nested-AGENTS.md.template`); per-package wiki above ~150 files (`context-routing.md → Scaling`).
+7. **Wire enforcement:** hooks are in `.claude/settings.json`; optional `assets/pre-commit.template` → `.git/hooks/pre-commit`; CI step `node context/ctx.mjs lint`. Other tools: `ctx init --pointers`.
+8. **Verify the scaffold like code:** `ctx index && ctx lint && ctx doctor`; confirm `@AGENTS.md` resolves (`/memory`, `/context` on Claude Code); confirm `.gitignore` covers `context/current-issues.md` + `CLAUDE.local.md`; attempt to read `.env` and confirm the deny rule blocks; change a covered file and confirm `ctx impact`/Stop hook react.
+9. **First-session prompt** (give to the human):
 
-1. **Planning conversation (~10 min, before touching any tool).** Human + a *planning AI* (a chat separate from the coding agent) = the architect; the coding agent is the implementation engine. Establish and push back until clear: what does this thing actually do, who uses it, what are the core flows, where are the complex patterns, what could go wrong, what is in version one and what waits. Pick a build shape: **facade** (UI shell first), **journey** (one full user path), **skateboard** (thin slice through everything), or **tracer bullet** (one end-to-end risky path). Goals must be concrete and measurable, never "build a good canvas". The context files below are the organized output of that conversation.
-2. **Create the dot folders and files.** Copy every template from `assets/` into the project, preserving structure:
+> Read AGENTS.md. Read context/index.md and memory.md, skim progress-tracker.md. Run `node context/ctx.mjs brief` for the task, read only what it returns (TL;DR first). Confirm when you're ready to build Feature 01.
 
-```
-project-root/
-├── AGENTS.md                        <- assets/AGENTS.md.template (master file for every agent)
-├── CLAUDE.md                        <- assets/CLAUDE.md.template (thin wrapper; first line @AGENTS.md imports it at launch)
-├── CLAUDE.local.md                  <- assets/claude-local.md.template (personal, never committed)
-├── memory.md                        <- assets/memory.md.template
-├── .gitignore                       <- merge assets/gitignore.append (do not overwrite existing)
-├── .claude/
-│   ├── settings.json                <- assets/settings.json.template (adjust commands to the real stack)
-│   └── rules/                       <- optional path-scoped rule splits, see references/agents-md-rules.md
-└── context/
-    ├── overview.md                  <- assets/overview.md.template
-    ├── architecture.md              <- assets/architecture.md.template
-    ├── build-plan.md                <- assets/build-plan.template
-    ├── code-standards.md            <- assets/code-standards.md.template
-    ├── workflow-rules.md            <- assets/workflow-rules.md.template (copy verbatim, it is the discipline layer)
-    ├── library-docs.md              <- assets/library-docs.md.template
-    ├── ui-tokens.md                 <- assets/ui-tokens.md.template   (UI projects only; delete others)
-    ├── ui-rules.md                  <- assets/ui-rules.md.template    (UI projects only)
-    ├── ui-registry.md               <- assets/ui-registry.md.template (UI projects only; starts empty on purpose)
-    ├── decisions.md                 <- assets/decisions.md.template
-    ├── progress-tracker.md          <- assets/progress-tracker.md.template (starts empty: nothing is built yet)
-    ├── current-issues.md            <- assets/current-issues.md.template
-    ├── feature-specs/               <- empty; specs added one per unit as .md, NN-kebab-case.md
-    ├── designs/                     <- page mockups when available
-    └── screenshots/                 <- visual feedback for the agent
-```
+## Core loop (RUN)
 
-3. **Fill the templates from the planning conversation.** Replace every `{{PLACEHOLDER}}`. Facts the agent cannot discover from the code go in (package manager, dev/test/build commands, schema locations, design rules). Facts it can read from package.json do not. Delete template sections that do not apply; an honest 30-line file beats a padded 200-line one.
-4. **Non-greenfield?** Audit first: read the real project and write down how it actually works before planning any new slice. Scope must account for what is already built and plan the next slice on top of reality - reuse, not regenerate.
-5. **Monorepo?** Keep the root AGENTS.md for what is true everywhere, then add a nested `AGENTS.md` next to each package with only its local rules (see `assets/nested-AGENTS.md.template`). The agent only pulls the instructions for the area it is working in.
-6. **Name every tool in the stack, then install its agent skill / fresh-docs MCP** before speccing (Clerk, Prisma, Liveblocks, Trigger.dev, Stripe...). This stops the agent inventing a websocket layer when a library is already chosen. **Stack-selection criterion: prefer agent-native tools** — ones that ship an official skill or MCP server, so the agent reads live state (schema, config, docs) instead of guessing from stale training data. Record installs in `context/library-docs.md`.
-7. **Verify the scaffold:** check what actually loads (`/context`, `/memory` on Claude Code; confirm the `@AGENTS.md` import resolves), confirm `.gitignore` covers `current-issues.md` and `CLAUDE.local.md`, confirm the deny rule for `.env*` actually works by attempting a read. Verify like code.
-8. **First session prompt** (give this to the human to paste):
+1. **ORIENT** (≈2–5k tokens): `AGENTS.md` → `context/index.md` → `memory.md` → tracker skim → `ctx brief <files/keywords>` → TL;DRs. Don't scan the repo.
+2. **PLAN**: spec in `context/feature-specs/NN-*.md` (`ctx new feature <name>`); ledger entry `ctx task add "<unit>"`; clarify gate (≤5 questions, one at a time, answers written into the spec); value-source gate; plan saved; human reviews 5–10 min and rejects weak plans.
+3. **BUILD** in scope: `ctx task start NN` (one unit at a time — the CLI enforces it); one boundary per unit (backend and UI are separate specs); UI first with mock data, logic second; logic ships its failing test first.
+4. **RECORD while working** (table below).
+5. **CONTEXT-DIFF**: `ctx impact` → fix every ✗ page and UNCOVERED file → `ctx stamp`.
+6. **VERIFY**: lint/typecheck/build, drive the real flow, review against the spec checklist, converge.
+7. **CLOSE**: `ctx index` → `ctx lint` → `ctx log build "<unit>"` → `memory.md`.
 
-> Read AGENTS.md. Read the always-on context files and load the task-touched ones per its tiered reading order. Read memory.md. Confirm once you are ready to build Feature 01.
-
-Detailed authoring rules for every file: `references/context-files.md` and `references/agents-md-rules.md`.
-
-## The recording table (hard rules, enforced every task)
-
-The agent records *while* working, not at the end:
+## The recording table (hard rules, enforced by hooks + lint)
 
 | Event | Record |
 |---|---|
-| Starting a unit | progress-tracker.md: move unit to In Progress |
-| Finishing + verifying a unit | progress-tracker.md: move to Complete with concrete details (versions, config paths, env var names) |
-| Any hard technical decision | context/decisions.md entry (see template) - never buried in code or chat |
-| A shortcut taken under pressure | flagged-assumption entry on that feature, visible until properly decided |
-| A gap found in context files | edit the context file itself during the build |
-| New component built | ui-registry.md: check for a similar one first; if new, add it after building |
-| A bug appears | context/current-issues.md: symptom + suspected file + fix direction + definition of success |
-| End of every session | memory.md: current state, exact next step, open questions |
-| Feature/phase complete | changelog + PR description from the **actual diff**, not from the agent's memory |
-| Periodic / before handoff | sync pass (below) |
+| Starting a unit | `ctx task start NN` (ledger In progress; max one) |
+| Finishing + verifying | `ctx task done NN -m "<concrete details: versions, config paths, env var names>"`; user-facing behavior documented in `docs/`. States stay exclusive; blocked → `ctx task block NN "why + what unblocks it"` |
+| Hard technical decision | `decisions.md` D-NN (format below) — never buried in code/chat |
+| Shortcut under pressure | `decisions.md` F-NN flagged assumption on that feature, visible until decided |
+| Code changed | covering pages updated in the same change (`ctx impact`) |
+| New area learned by reading code | page now (`ctx new module <name> --covers "<globs>"`) |
+| Gap in a context page | fix the page during the build |
+| New UI component | check `ui-registry.md` first; add after building if new |
+| Bug | `current-issues.md`: symptom + suspect file + fix direction + definition of success |
+| New raw source | INGEST (source summary → affected pages → `ctx log ingest`) |
+| Reusable answer | file as `type: query` page |
+| Session end | `memory.md` (state, exact next step, working set, open questions, context debt) + `ctx log` |
+| Feature/phase done | changelog + PR text from the **actual diff** |
+| Periodic / before handoff | SYNC + cold-start eval (`references/evals.md`) |
 
-**Decision record format** (also in `assets/decisions.md.template`):
+**Decision record** (`assets/decisions.md.template`): `## D-NN: <title> — <date>` · Trigger · Options considered · Chosen + why · Lost alternative + honest reason · Cost paid (moving part / latency / tolerated incorrectness / money) · Reversibility (easy | painful) · Correctness policy (what may be slightly wrong; what never).
 
-```markdown
-## D-NN: <title> - <date>
-Trigger: what forced this decision
-Options considered: A / B / C
-Chosen: <option>, because <reason>
-Lost alternative: <option>, honest reason it lost
-Cost paid: new moving part / per-request latency / tolerated incorrectness / money
-Reversibility: easy | painful (what a rollback costs)
-Correctness policy: what is now ALLOWED to be slightly wrong (and what never is)
-```
+## Page rules (summary — spec in `references/page-format.md`)
 
-## Session protocol (summary - full version in references/session-protocol.md)
+Every page under `context/` has frontmatter `title type status summary updated` (+ `tags`, `covers` for anything describing code, `confidence`), a `## TL;DR` first, ≤ ~160 lines, **why / contracts / invariants / gotchas — not what the code already says**, links by path + symbol never line numbers, no secrets. Search the catalog before creating a page. Conflicts are flagged to the human, never silently overwritten. Delete → archive.
 
-1. One fresh chat/session per feature unit. Context rot is real: degradation starts near 50k tokens even in a 200k window. Clear on anything new; compact only to continue the same work. When compacting, always preserve: current unit, full list of modified files, test/build commands, open questions.
-2. **Tiered reading** — never preload the whole folder: always read overview + workflow-rules + progress-tracker + memory.md; then read on demand — the spec for the unit being built, code-standards before writing code, architecture + library-docs before touching that subsystem, ui-* files only for UI units, decisions.md before repeating any decision.
-3. Prompt = "Read [spec NN]. Mark it in progress. Implement exactly as specified **without going beyond scope**." Short prompts: no stack, no folders, no UI rules - the files carry that.
-4. Clarify before approve: the agent asks up to 5 targeted questions about underspecified areas of the spec, one at a time (confirming shared terminology as it goes), answers written back into the spec. Then it saves its plan. Human spends 5-10 minutes reading every plan before approving; a weak plan ("add database, update storefront") gets rejected. Run a read-only consistency check (spec ↔ plan ↔ task coverage) before implementing.
-5. One boundary per unit; backend and UI are separate specs. UI first with mock data, logic second. Logic-bearing code ships its failing test first (RED-GREEN-REFACTOR) — no test-after.
-6. Review against the spec's verification checklist, then converge (re-check until no gaps remain, appending only new tasks). Out-of-scope edits get reverted with a focused corrective prompt: file references + screenshots, every issue one by one, and exactly what done looks like.
-7. Research the main thread does not need goes to parallel subagents: "return current behavior, relevant files, constraints, recommended approach; do not implement."
-8. Push to git at every phase boundary. Per feature: push → PR → AI code review → fix findings → merge. Findings come back ranked critical/important/minor and are **never auto-fixed** — the human names which to resolve. Deferred findings get written down; nothing is silently ignored.
-9. Completion = four separate jobs: verify (drive the real app), test (senior-grade suite), review (a different model than the one that wrote it), document (changelog from the real diff). Scale to risk.
+## Session protocol (summary — full: `references/session-protocol.md`)
 
-## Sync pass (keeps month-three docs describing the real app)
+- One fresh session per feature unit; degradation starts near ~50k tokens. Clear for anything new; compact only to continue — preserve current unit, modified files, commands, open questions, pages already read.
+- Prompts are short: "Read spec NN. Mark it in progress. Implement exactly as specified, without going beyond scope." The files carry stack, folders, rules.
+- Research the main thread doesn't need → parallel **read-only** subagents ("return behavior, files, constraints, recommended approach; do not implement"); the main agent writes the pages.
+- Out-of-scope edits are reverted with a focused corrective prompt (file refs + screenshots, one issue at a time, what "done" looks like).
+- Git at every phase boundary; per feature push → PR → review by a different model → human names which findings to fix; deferred findings written down.
+- Completion = verify (real app) + test + review + document. Scale to risk.
 
-Run at phase boundaries, before handing the project to another agent, or when docs and code seem to disagree:
-- Re-read every context file against what the repo actually shows now.
-- Code disagrees with a doc: flag the conflict, let the human decide. Never silently overwrite docs or code.
-- Human-written edits are preserved; the sync only fills gaps and removes lines that are no longer true.
-- Audit the instruction files against each other: AGENTS.md vs CLAUDE.md vs .claude/rules vs skills — flag contradictory or stale instructions (on Claude Code: `/doctor prompt-audit`). Delete legacy config that shadows the system: `.cursorrules`, `.windsurfrules`, singular `AGENT.md` (first-match loaders like Zed silently shadow AGENTS.md).
-- Respect loader budgets: Codex concatenates nested AGENTS.md root-down with a 32 KiB `project_doc_max_bytes` cap — keep nested files tiny.
-- Update AGENTS.md only because the project made a real decision worth remembering.
-- Clear or archive current-issues.md before merges.
+## SYNC / LINT in one paragraph
 
-## Interop with per-change SDLC packs
+Run at phase boundaries, before handoff, after merges, or when `ctx stale`/`ctx lint` complain: `ctx stale`, `ctx impact --since <ref>`, `ctx coverage`, `ctx lint`; re-read flagged pages against code; code vs human-written statement → flag and let the human decide; preserve human edits; fix what is plainly outdated; `ctx stamp` verified pages; audit AGENTS.md vs CLAUDE.md vs rules vs skills for contradictions; delete legacy `.cursorrules/.windsurfrules/AGENT.md`; clear `current-issues.md` before merges; `ctx log sync`.
 
-Pipeline skill packs (e.g. ai-sdlc-style: explore→plan→design→apply→verify→archive per change) overlap with this system's session protocol. Keep them separate and map artifacts, never fork: this system owns per-project state (context/, decisions.md, progress-tracker, memory.md); the pipeline owns per-change docs. If one is installed, route its artifacts INTO context/feature-specs/ (its status/approval fields become fields of the spec), make context/decisions.md the single sink for its per-stage decisions, and forbid a parallel spec tree. Two sources of truth for "the spec of Feature 03" is the failure mode.
+## Safety (never delegated)
 
-## Safety guardrails (never delegated to the agent)
-
-- Humans create and manage `.env` / `.env.local`. Secrets never enter chat, ever.
-- `.claude/settings.json`: deny beats ask beats allow. Deny reads of `.env*`; ask before `git push`, deletions, and deploys.
-- `context/current-issues.md` is gitignored (pasted errors leak tokens) and cleared before merges.
-- Instruction files are advisory; **hooks are the enforcement layer**. For rules that must never be skipped (re-inject the reading order on SessionStart including after compaction; block session end when progress-tracker/memory.md weren't touched), configure hooks in `.claude/settings.json` — see references/safety-permissions.md.
-- Tool auto-memory (Claude's learned memory) is scratch: the system of record is always memory.md + context/; the sync pass resolves conflicts in favor of the files.
-- Before installing any MCP/tool that writes into AGENTS.md: copy AGENTS.md somewhere safe, merge custom content back on top afterwards. Both need to be there; neither replaces the other.
-- Vet third-party skills/plugins before installing: they contain executable scripts, not just markdown.
+- Humans manage `.env*`; secrets never enter chat or pages (names only; lint heuristics catch token-shaped strings).
+- `.claude/settings.json`: deny > ask > allow. Deny `.env*` reads and edits to migrations and `context/raw/**`; ask before push/deletes/deploys/installs.
+- Instruction files are advisory; **hooks are enforcement**: SessionStart re-injects orientation (also after compaction); Stop blocks ending when code changed but covering pages / tracker / memory weren't updated (loop-safe). Details: `references/safety-permissions.md`.
+- `current-issues.md` is gitignored (pasted errors leak tokens) and cleared before merges.
+- Tool auto-memory is scratch; files win in conflicts.
+- Vet third-party skills/plugins/MCPs before installing (they run code). Before any tool that writes into AGENTS.md: back it up, merge back after.
 
 ## Architecture defaults (seed in workflow-rules.md)
 
-Start with a monolith; relational database by default; paginate every list; rate-limit every public endpoint; never keep secrets in code. Escalation ladder: bigger server before splitting → free checks before clever ones (a missing index looks exactly like a capacity problem; check it first) → reads (replicas, cache) before writes → queue before new infra → sharding strictly last. One technology in many roles beats a new system per need. Load-balanced components keep zero per-user state in-process. Do not couple the user-facing path to external services: answer fast, queue the slow work; "done now" means promised, not finished; background jobs get retries + dead-letter + human review. Before building, run the **value-source gate**: list every value the feature shows or computes and where it comes from; any value with no source is a decision nobody made - stop and ask. Correctness is a recorded policy per field: follower counts may be 30s stale; balances never. Outsource the typing, never the decision-making.
+Monolith first; relational DB by default; paginate every list; rate-limit every public endpoint; no secrets in code. Escalation ladder: bigger server → free checks (a missing index looks like a capacity problem) → reads (replicas, cache) before writes → queue before new infra → sharding last. One technology in many roles beats a new system per need. Load-balanced components keep zero per-user state in-process. Don't couple the user path to external services: answer fast, queue slow work; background jobs get retries + dead-letter + human review. Run the **value-source gate** before building. Correctness is a recorded policy per field (counts may lag 30s; balances never). Outsource the typing, never the decision-making. Detail: `references/architecture-decisions.md`.
+
+## Interop
+
+Tool-specific pointer files (`GEMINI.md`, Copilot, Cursor) only import AGENTS.md; SDLC packs route artifacts into `context/feature-specs/` with `decisions.md` as the single decision sink; one source of truth per fact — `docs/` is for humans, `context/` for agents, linked never duplicated; the scaffolded `.claude/agents/` explorer and reviewer carry exploration and fresh-eyes review out of the main window. Details: `references/multi-agent-interop.md`.
 
 ## References & assets
 
-- `references/agents-md-rules.md` - inclusion test, size, hierarchy, rules splitting, growth discipline
-- `references/context-files.md` - per-file content spec for all 12 context files
-- `references/session-protocol.md` - full loop: plan mode, spec loop, error protocol, corrective prompts, subagents, git flow
-- `references/recording-workflows.md` - templates for issues/decisions/memory/changelog + sync checklist
-- `references/architecture-decisions.md` - cost ritual, escalation ladder, correctness policy detail
-- `references/safety-permissions.md` - settings.json policy, hooks enforcement, secrets handling, review flow
-- `references/claude-code-commands.md` - tool-specific mechanics: CLI flags (-p/-c/--resume), modes, keybindings, skills/plugins, billing, data policy
-- `assets/*` - starter templates for every scaffolded file (copy verbatim, replace `{{PLACEHOLDER}}`s)
+| File | Read when |
+|---|---|
+| `references/llm-wiki-pattern.md` | understanding/explaining the architecture; Karpathy mapping; failure modes |
+| `references/page-format.md` | writing or reviewing any page (frontmatter spec, types, rules) |
+| `references/operations.md` | executing ORIENT/QUERY/BUILD/INGEST/ADOPT/LINT/SYNC/HANDOFF/COMPACT |
+| `references/codebase-wiki.md` | adopting an existing repo; writing map/module pages |
+| `references/tool-delegation.md` | **before hand-building a code map/symbol/dependency view** — what to delegate to (graphify, ctags, aider, dependency-cruiser) and how to distill its output |
+| `references/context-routing.md` | token budgets, `brief` ranking, scaling past ~150 pages |
+| `references/ctx-cli.md` | any `ctx` command, lint rules, config, hook wiring |
+| `references/evals.md` | proving the wiki works (cold-start test), regression guards |
+| `references/multi-agent-interop.md` | other tools, monorepos, parallel agents |
+| `references/context-files.md` | per-file content spec for every scaffolded file |
+| `references/agents-md-rules.md` | authoring AGENTS.md/CLAUDE.md |
+| `references/session-protocol.md` · `recording-workflows.md` | full working loop; entry templates; error protocol |
+| `references/architecture-decisions.md` · `safety-permissions.md` · `claude-code-commands.md` | cost ritual; permissions/hooks/secrets; Claude Code mechanics |
+| `scripts/ctx.mjs` | the CLI (copied to `context/ctx.mjs` by `init`) |
+| `assets/*` | templates for every scaffolded file and page type |

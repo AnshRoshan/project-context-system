@@ -1,0 +1,47 @@
+{
+  "name": "project-context-system",
+  "version": "3.1.0",
+  "description": "Turns any project into a self-maintaining markdown knowledge base (Karpathy-style LLM wiki) that coding agents read instead of re-exploring the codebase, with a zero-dependency ctx CLI and hooks that enforce it.",
+  "license": "MIT",
+  "type": "module",
+  "main": "scripts/ctx.mjs",
+  "bin": {
+    "ctx": "scripts/ctx.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "CHANGELOG.md",
+    "assets/",
+    "references/",
+    "scripts/"
+  ],
+  "scripts": {
+    "test": "node tests/run.mjs",
+    "test:lint": "node tests/run.mjs lint",
+    "check": "node tests/run.mjs",
+    "selftest": "node tests/run.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "context",
+    "llm",
+    "wiki",
+    "claude-code",
+    "codex",
+    "cursor",
+    "copilot",
+    "agents-md",
+    "documentation",
+    "knowledge-base",
+    "context-engineering"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnshRoshan/project-context-system.git"
+  }
+}

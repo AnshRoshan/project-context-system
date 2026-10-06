@@ -1,0 +1,47 @@
+---
+title: {{Module name}}
+type: module
+status: active
+summary: {{One line — what this module owns and its main entry point}}
+tags: [{{auth}}, {{security}}]
+covers: [{{src/auth/**}}, {{src/middleware.ts}}]
+related: [decisions.md, data-model.md]
+updated: {{TODAY}}
+confidence: verified
+---
+
+# {{Module name}}
+
+## TL;DR
+- Owns: {{what this module is responsible for — and what it deliberately does NOT own}}
+- Entry points: {{file → exported symbol}}
+- Biggest gotcha: {{the one thing that bites people}}
+
+## Responsibilities
+{{3–6 bullets. Behavior, not file listings.}}
+
+## Public surface
+| Symbol / route | File | Contract (inputs → outputs, errors) |
+|---|---|---|
+| {{getSession()}} | {{src/auth/session.ts}} | {{() → Session or null; never throws}} |
+
+## Data flow
+{{How a request/event travels through this module; where state lives; what it reads/writes (tables, queues, caches).}}
+
+## Depends on / used by
+- Depends on: {{modules, libraries (see library-docs.md), env var NAMES}}
+- Used by: {{modules}}
+
+## Invariants & gotchas
+- {{Rules that must hold; non-obvious behavior; past bugs (link current-issues/decisions: D-NN)}}
+
+## Tests
+{{Where the tests live; the command that runs just them}}
+
+## Open questions
+{{Unknowns, flagged assumptions (F-NN). Delete the section if none.}}
+
+<!--
+Page-worthiness: write WHY, contracts and gotchas — not what the code already says.
+Link files by path + symbol name, never by line number. Every file in `covers` must exist.
+-->

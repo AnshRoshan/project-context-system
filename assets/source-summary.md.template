@@ -1,0 +1,28 @@
+---
+title: {{Source title}}
+type: source
+status: active
+summary: {{One line — what this source says and which decisions/pages it affects}}
+tags: [{{prd}}, {{vendor-docs}}]
+raw: context/raw/{{filename}}
+updated: {{TODAY}}
+---
+
+# {{Source title}}
+
+Summary of an immutable file in `context/raw/`. The raw file is never edited; if the source changes, add a new raw file and a new summary, and mark the old page `superseded`.
+
+## TL;DR
+{{3–5 lines: what matters here for this project}}
+
+## Key claims / requirements
+- {{claim — with where in the raw file (section/page)}}
+
+## Pages updated because of this source
+- [{{page}}]({{path}}) — {{what changed}}
+
+## Contradictions with existing pages
+- {{page says X, source says Y → resolution: decision D-NN / flagged F-NN / human to decide}}
+
+## Open questions
+- {{...}}

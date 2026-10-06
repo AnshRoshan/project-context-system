@@ -1,6 +1,22 @@
+---
+title: Progress Tracker
+type: tracker
+status: active
+summary: The task ledger — In progress (max one), Blocked, Up next, Completed with concrete details
+tags: [progress,status,tasks]
+updated: {{TODAY}}
+---
+
 # Progress Tracker
 
-The only file that updates constantly. It reflects the actual state of the project — nothing is built yet, so it starts empty. States are mutually exclusive: nothing is ever both current and completed.
+## TL;DR
+
+- Phase {{n}}, goal: {{one line}}. In progress: {{Feature NN or none}}. Next: {{Feature NN}}.
+
+The only file that updates constantly, and the only place a unit's state lives. States are
+mutually exclusive — nothing is ever in two sections at once. Move lines with `ctx task`
+(`add` / `start` / `block` / `done`); it keeps the ledger honest (one unit In progress at a
+time, `done` requires concrete details). Hand edits are fine — `ctx lint` checks the invariants.
 
 Current phase: {{1}} · Current goal: {{one line, or TBD}}
 
@@ -8,13 +24,17 @@ Current phase: {{1}} · Current goal: {{one line, or TBD}}
 
 - {{Feature NN: name — started {{date}}}}
 
-## Completed
+## Blocked
 
-- {{Feature NN: name — {{date}} — key decisions: D-NN; concrete details: versions, config paths, env var names}}
+{{- Feature NN: name — blocked: <why + what unblocks it>}}
 
 ## Up next
 
 - {{Feature NN, NN}}
+
+## Completed
+
+- {{Feature NN: name — {{date}} — key decisions: D-NN; concrete details: versions, config paths, env var names}}
 
 ## Session notes
 

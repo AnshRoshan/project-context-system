@@ -1,6 +1,6 @@
 # Memory
 
-Session handoff. Updated at the end of EVERY session. This file is how any agent or human picks up with zero re-explaining.
+Session handoff. Updated at the end of EVERY session. This file is how any agent or human picks up with zero re-explaining. Keep it under ~60 lines — history belongs in context/log.md.
 
 _Last updated: {{date, end of session N}}_
 
@@ -12,6 +12,17 @@ _Last updated: {{date, end of session N}}_
 
 {{The exact unit to start with. E.g. "Feature 02 of Phase 1: authentication — see context/feature-specs/02-auth.md. Begin in plan mode; DB schema change is involved."}}
 
+## Working set (for compaction / resume)
+
+- Current unit: {{Feature NN}}
+- Files modified this session: {{paths}}
+- Pages to read first: {{context/codebase/modules/x.md, context/feature-specs/NN-*.md}}
+- Commands: {{test / typecheck / build}}
+
 ## Open questions
 
 {{Unresolved decisions carried across sessions. Never drop these. E.g. "- Rate limit for public search: 10/min or 30/min? (D-05 pending)"}}
+
+## Context debt
+
+{{Pages known to be stale, areas with no page yet, flagged assumptions (F-NN). E.g. "- No module page for src/billing yet (written from memory, unverified)"}}

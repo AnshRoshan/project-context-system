@@ -7,6 +7,7 @@
       "Bash(npm test)",
       "Bash(npm run typecheck)",
       "Bash(npm run lint)",
+      "Bash(node context/ctx.mjs:*)",
       "Bash(git status)",
       "Bash(git diff:*)",
       "Bash(git log:*)"
@@ -22,7 +23,25 @@
       "Read(.env)",
       "Read(.env.*)",
       "Read(**/.env*)",
-      "Edit(**/migrations/**)"
+      "Edit(**/migrations/**)",
+      "Edit(context/raw/**)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/context/ctx.mjs\" hook session-start" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/context/ctx.mjs\" hook stop" }
+        ]
+      }
     ]
   }
 }

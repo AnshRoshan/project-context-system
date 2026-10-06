@@ -1,0 +1,13 @@
+# {{Project name}}
+
+> {{One-sentence description of what the project does and for whom.}} Project context for LLMs: start with AGENTS.md, then context/index.md.
+
+## Core
+- [AGENTS.md](AGENTS.md): instructions, commands and invariants for any agent
+- [memory.md](memory.md): current state and the exact next step
+- [context/index.md](context/index.md): task routing + catalog of every page with a one-line summary
+
+## Optional
+- [context/log.md](context/log.md): append-only timeline of what happened and why
+
+<!-- `node context/ctx.mjs index --llms` regenerates this file with every page listed. -->

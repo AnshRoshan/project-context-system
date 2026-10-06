@@ -1,0 +1,27 @@
+---
+title: Runbook
+type: runbook
+status: draft
+summary: Run, deploy, roll back and debug the system — commands and procedures that work
+tags: [ops, deploy, debugging]
+updated: {{TODAY}}
+---
+
+# Runbook
+
+## TL;DR
+- Local: `{{npm run dev}}` on {{port}}. Deploy: {{how/where}}. Rollback: {{how}}.
+
+## Local setup
+{{Prereqs, first-run steps, seed data}}
+
+## Deploy
+{{Pipeline, environments, who approves (agents ask before deploying)}}
+
+## Rollback
+{{Exact steps and what data implications exist}}
+
+## Debugging playbook
+| Symptom | Likely cause | Check |
+|---|---|---|
+| {{500 on /api/x}} | {{missing env}} | {{logs: …}} |

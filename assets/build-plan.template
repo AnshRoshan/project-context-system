@@ -1,4 +1,17 @@
+---
+title: Build Plan
+type: plan
+status: active
+summary: Every feature sequenced into phases — what comes next is never the agent's call
+tags: [plan,roadmap,phases]
+updated: {{TODAY}}
+---
+
 # Build Plan
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 {{N}} features across {{M}} phases. Every feature defined, scoped, and sequenced — the agent never has to decide what comes next.
 Scope (WHAT) is kept separate from tech (HOW) so this plan doesn't rot the day a tool changes.

@@ -1,0 +1,55 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Self-test the ctx CLI
+        run: node tests/run.mjs
+
+  # The skill's own templates must stay valid: every context page the scaffolder
+  # ships has to satisfy the lint rules the CLI enforces on user projects.
+  scaffold-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Scaffold into a scratch project and verify it
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          mkdir -p "$work/src"
+          echo 'export const x = 1;' > "$work/src/index.ts"
+          git -C "$work" init -q
+          git -C "$work" config user.email ci@example.com
+          git -C "$work" config user.name CI
+          node scripts/ctx.mjs init --root "$work" --ui --full --pointers
+          cd "$work"
+          node context/ctx.mjs index
+          # A fresh scaffold is expected to WARN about unfilled placeholders;
+          # it must never produce a structural ERROR, and doctor must be green.
+          node context/ctx.mjs lint --json > lint.json || true
+          node -e "
+            const r = JSON.parse(require('fs').readFileSync('lint.json', 'utf8'));
+            const fatal = r.errors.filter((e) => !/unfilled/.test(e));
+            if (fatal.length) { console.error('unexpected scaffold errors:', fatal); process.exit(1); }
+            console.log('scaffold lints clean:', r.pages, 'pages');
+          "
+          node context/ctx.mjs doctor
+          node context/ctx.mjs status

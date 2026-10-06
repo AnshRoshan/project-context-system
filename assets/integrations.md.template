@@ -1,0 +1,24 @@
+---
+title: Integrations
+type: integration
+status: draft
+summary: Every external service: why it is there, what we call, failure behavior, limits, owner of the credentials
+tags: [external, vendors, services]
+covers: [{{src/lib/integrations/**}}]
+related: [library-docs.md, env-vars.md, decisions.md]
+updated: {{TODAY}}
+confidence: inferred
+---
+
+# Integrations
+
+## TL;DR
+External services this project depends on. User-facing paths must not be coupled to their availability — queue slow work, degrade gracefully.
+
+## {{Service}}
+- Role: {{what it does for us}} · Decision: D-{{NN}}
+- Used from: {{module/file}} · Credentials: env `{{NAMES_ONLY}}` (see env-vars.md)
+- Calls: {{endpoints / SDK methods we use}}
+- Failure behavior: {{timeout, retry, fallback, what the user sees}}
+- Limits / cost: {{rate limits, pricing traps}}
+- Docs/skill/MCP: {{link or installed skill name}}

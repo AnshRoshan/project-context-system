@@ -42,3 +42,11 @@ Subagent research prompts end with "**Do not implement anything yet.**" Investig
 
 ## Autonomy ramp
 "Don't start every project by enabling every feature. Let the problem you have create the reason to use that feature." Good context → small tasks → review what it does → repeated processes become skills → subagents when work can happen separately → "and slowly give the agent more freedom as you understand how it behaves."
+
+
+## Hooks shipped with this skill (v2)
+`assets/settings.json.template` wires two hooks to `context/ctx.mjs`:
+- **SessionStart** (`startup|resume|clear|compact`): prints the orient instruction, the Next step from memory.md and a stale-page warning. Stdout becomes context, so the bootstrap survives compaction.
+- **Stop**: if code changed and (a) a page that `covers` it wasn't updated, or (b) neither progress-tracker.md nor memory.md was touched, it exits 2 with a message so the agent continues and fixes it. It reads `stop_hook_active` from stdin and always allows the stop on the second pass, so it can never loop. If nothing but docs changed, it allows the stop.
+Both are dependency-free and fail open (any internal error -> allow). Test them: change a covered file and attempt to stop; run `echo '{"stop_hook_active":true}' | node context/ctx.mjs hook stop` and confirm exit 0.
+Also denied by the template: `Edit(context/raw/**)` (raw sources are immutable). Non-Claude tools: use the git pre-commit template or CI (`ctx lint`).

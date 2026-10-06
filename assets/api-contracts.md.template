@@ -1,0 +1,29 @@
+---
+title: API Contracts
+type: api
+status: draft
+summary: Every HTTP route / server action / event: inputs, outputs, auth, errors — the contract, not the implementation
+tags: [api, routes, contracts]
+covers: [{{src/app/api/**}}]
+related: [data-model.md, architecture.md]
+updated: {{TODAY}}
+confidence: inferred
+---
+
+# API Contracts
+
+## TL;DR
+- Style: {{REST route handlers / server actions / tRPC}}. Errors shaped as: {{{ error: string, code: string }}}. Auth: {{how}}.
+- Public routes (explicit list, everything else protected): {{...}}
+
+## Conventions
+- Validation: {{zod at the boundary}} · Pagination: {{cursor|offset, default limit}} · Rate limit: {{policy}}
+
+## Endpoints
+| Method + path | Auth | Request | Response | Errors | Handler |
+|---|---|---|---|---|---|
+| {{GET /api/health}} | {{public}} | {{—}} | {{{ ok: true }}} | {{—}} | {{src/app/api/health/route.ts}} |
+
+## Events / webhooks / jobs
+| Name | Trigger | Payload | Consumer |
+|---|---|---|---|

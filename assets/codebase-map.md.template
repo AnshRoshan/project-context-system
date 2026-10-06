@@ -1,0 +1,49 @@
+---
+title: Codebase Map
+type: architecture
+status: draft
+summary: Annotated directory tree, entry points and a "where is X?" table — read this instead of exploring the repo
+tags: [map, structure, entry-points]
+covers: [{{src/**}}]
+related: [architecture.md]
+updated: {{TODAY}}
+confidence: inferred
+---
+
+# Codebase Map
+
+## TL;DR
+- Stack: {{one line}}. Entry points: {{files}}.
+- Source lives in {{dirs}}; tests in {{dirs}}; generated code (do not edit) in {{dirs}}.
+- Per-area detail: `codebase/modules/*.md` (one page per module, each declares which files it `covers`).
+
+## Annotated tree
+Only meaningful directories and files, one line each. Not a dump of `ls -R`.
+
+```
+{{src/
+  app/            routes + layouts (Next.js App Router)
+  db/             schema + client (Drizzle)
+  lib/            pure helpers, no I/O
+}}
+```
+
+## Entry points
+| Kind | File | Notes |
+|---|---|---|
+| {{Web request}} | {{src/app/layout.tsx}} | {{root layout}} |
+| {{Background job}} | {{...}} | {{...}} |
+| {{CLI / script}} | {{...}} | {{...}} |
+
+## Where is X?
+| I need to… | Go to |
+|---|---|
+| {{change a DB table}} | {{src/db/schema.ts → then `drizzle-kit push`}} |
+| {{add an API route}} | {{src/app/api/<name>/route.ts}} |
+| {{add a page}} | {{src/app/<route>/page.tsx}} |
+
+## Generated / do-not-edit
+{{paths}}
+
+## Module pages
+List is generated in `index.md`. Rule: every top-level source directory is covered by at least one module page (`node context/ctx.mjs coverage` shows blind spots).

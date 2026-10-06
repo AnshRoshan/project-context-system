@@ -1,0 +1,31 @@
+---
+title: Data Model
+type: entity
+status: draft
+summary: Entities, relationships, ownership and lifecycle rules — the meaning behind the schema file
+tags: [database, schema, entities]
+covers: [{{src/db/schema.ts}}]
+related: [architecture.md, decisions.md]
+updated: {{TODAY}}
+confidence: inferred
+---
+
+# Data Model
+
+## TL;DR
+- Source of truth for structure: `{{src/db/schema.ts}}` (do not copy columns here — they rot). This page holds what the schema cannot say.
+- Core entities: {{A, B, C}}. Money/identity fields: {{rules}}.
+
+## Entities
+### {{Entity}}
+- Meaning: {{what one row represents in the domain}}
+- Owner (who may write): {{module / role}}
+- Lifecycle: {{created when → states → deleted/soft-deleted when}}
+- Invariants: {{e.g. total is integer cents; email unique per org}}
+- Correctness policy: {{what may be stale/eventually consistent; what never may}}
+
+## Relationships
+{{A 1—n B (cascade? ownership?), B n—n C via join table…}}
+
+## Migration rules
+{{How schema changes are applied in this project (e.g. `npx drizzle-kit push` in dev; never hand-edit migrations)}}

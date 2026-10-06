@@ -1,5 +1,7 @@
 # Context Files - per-file content spec
 
+> v2: every file under `context/` (except raw/, designs/, screenshots/, archive/, index.md, log.md, current-issues.md) is a **page** with frontmatter and a `## TL;DR` — see `page-format.md`. New files are listed in the "v2 files" section at the bottom. The folder is entered through `context/index.md`, not read wholesale.
+
 Everything in `context/` is what the coding agent reads before it does anything. This is how it stays consistent across every session, commit, and unit of the build. The files travel with the project for its entire life.
 
 ## overview.md
@@ -33,7 +35,7 @@ Living component catalog, starts empty. Rule: "before building any UI, check if 
 The decision log. One entry per hard technical decision, format in recording-workflows.md. "That's not buried in code. It's written down where you can see it and overrule it."
 
 ## progress-tracker.md
-"The only file that actually updates constantly throughout the build." Current phase, current goal, in progress, completed, up next, session notes with concrete details (tool versions, "Prisma config uses prisma/ and not some other path", "database URL reads from .env"). Starts intentionally empty - "it reflects the actual state of the project: nothing has been built yet." States stay mutually exclusive: nothing is both current and completed. Recovery promise: "if we come back 2 months later, it'll know it's using shadcn, Tailwind v4, dark theme only, and all the architectural decisions."
+"The only file that actually updates constantly throughout the build." The task ledger: **In progress (max one — one unit at a time) · Blocked (with why + what unblocks it) · Up next · Completed** with concrete details (tool versions, "Prisma config uses prisma/ and not some other path", "database URL reads from .env") + session notes. Move lines with `ctx task add|start|block|done` — it enforces the state machine (start refuses a second active unit; done refuses a vague completion). Hand edits are fine; `ctx lint` checks the invariants. States stay mutually exclusive. Recovery promise: "if we come back 2 months later, it'll know it's using shadcn, Tailwind v4, dark theme only, and all the architectural decisions."
 
 ## current-issues.md
 The bug queue. Gitignored - pasted errors have leaked JWTs into public repos. Numbered issues: symptom + suspected file + fix direction + definition of success. Cleared/archived before merges.
@@ -46,3 +48,35 @@ One file per unit of work, `NN-kebab-case.md`, zero-padded sequence = build orde
 
 ## Portability
 Same folder works across Claude Code, Codex, Copilot, Cursor. Hand the folder to another developer and their agent continues from there. Start slow, keep adding as you go; reuse and slightly adapt the same files for future projects.
+
+## v2 files
+
+### index.md
+Router + catalog. Hand-written top: orient steps, **task-routing table** (task type -> ordered pages), layer explanation. Generated bottom (between `<!-- ctx:index:* -->`): every active page as `[title](path) — summary`, grouped by type, flagged `(inferred)`/`(unfilled)`. Regenerate with `ctx index`; never hand-edit the generated block. Keep the whole file under ~6k tokens (see context-routing.md Scaling).
+
+### log.md
+Append-only timeline. Entry format `## [YYYY-MM-DD] op | title` + 1-2 lines (what changed, which pages). Ops: ingest, query, build, decision, fix, lint, sync, audit, handoff. Greppable: `grep "^## \[" context/log.md | tail -10`.
+
+### codebase/map.md and codebase/modules/*.md
+The code-facing wiki: annotated tree, entry points, "where is X?", and one page per module with `covers:` globs, public surface, data flow, invariants, gotchas. See `codebase-wiki.md`.
+
+### data-model.md · api-contracts.md · integrations.md · glossary.md · env-vars.md · testing.md · runbook.md
+Create when they pass the page-worthiness test (`ctx init --full` scaffolds all). Contracts and meaning, not copies of code: data-model explains entities/lifecycle/correctness policy and points to the schema file; api-contracts lists routes/actions/events with auth, inputs, outputs, errors; integrations records every external service's role, failure behavior and limits; glossary fixes vocabulary (one meaning per term); env-vars lists names and purpose, never values; testing holds commands, layout, must-cover areas and the cold-start question set; runbook has local setup, deploy, rollback, debugging playbook.
+
+### raw/ and sources/
+`raw/` = immutable inputs (PRDs, notes, vendor docs, exports); never edited (settings deny edits). `sources/<slug>.md` = one summary page per raw file (`type: source`, `raw:` pointer, key claims, pages updated, contradictions). See operations.md INGEST.
+
+### queries/ (optional)
+Reusable answers filed back from QUERY as `type: query` pages with `covers` for what they cite.
+
+### archive/
+Retired/superseded pages and old logs. Excluded from the catalog and lint, still greppable.
+
+### docs/ (outside context/ — human-facing)
+`docs/README.md` defines the split: humans read `docs/`, agents read `context/`; one fact, one home, links not copies. `docs/runbooks/` for operator steps, `docs/adr/` for decision records exported for humans. A feature is not documented until its user-facing behavior is written here.
+
+### .claude/agents/ (outside context/ — subagents)
+`context-explorer.md` (read-only code investigator that returns wiki gaps, never file dumps) and `context-reviewer.md` (fresh-eyes diff reviewer at unit boundaries; must-fix/should-fix/note). The main agent still writes the pages.
+
+### .ctx.json
+Tool config, **generated by `init` from the detected project profile** (limits, source extensions, ignore globs per stack). Edit by hand to override; `ctx detect` shows what init saw.

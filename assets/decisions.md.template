@@ -1,4 +1,17 @@
+---
+title: Decisions Log
+type: decision-log
+status: active
+summary: Every hard technical decision with options, lost alternative, cost and reversibility; plus flagged assumptions
+tags: [decisions,adr,tradeoffs]
+updated: {{TODAY}}
+---
+
 # Decisions Log
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 One entry per hard technical decision, written the moment it is made. Not buried in code, not lost in chat — written down where the human can see it and overrule it.
 

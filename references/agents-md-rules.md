@@ -44,3 +44,11 @@ When AGENTS.md grows, split into `.claude/rules/` - `testing.md`, `database.md`,
 - Facts go in AGENTS.md. Repeatable processes become skills. One-time tasks you just ask.
 - Keep tool-generated preamble that helps (e.g. Next.js's "training data may be outdated, read the install docs before writing code" note).
 - If an external MCP/tool rewrites AGENTS.md: back the file up first, then merge your custom content back on top. Both need to be there; neither replaces the other.
+
+
+## v2 update — AGENTS.md is the schema, the index is the router
+- Reading order is now: `context/index.md` -> `memory.md` -> tracker skim -> `ctx brief` for the task. The old fixed always-read list is retired because it grows with the project; routing does not.
+- AGENTS.md carries: orient steps, project facts, invariants, the *maintain-the-wiki* table (event -> record), skill/command index, verification. Everything else is a link into `context/`.
+- Target 60-90 lines, hard cap 120 (`ctx lint` warns). Each line must pass the inclusion test: removing it would make the agent assume the wrong thing.
+- `ctx lint` also checks: CLAUDE.md starts with `@AGENTS.md`; AGENTS.md routes through `context/index.md`; legacy `.cursorrules/.windsurfrules/AGENT.md` absent.
+- Evolve it: when an agent repeats a mistake twice, add the one-line rule (or a page) that prevents it; when a rule never prevents anything, delete it. You and the agent co-evolve the schema.

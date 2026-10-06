@@ -1,4 +1,18 @@
+---
+title: Feature NN: {{Name}}
+type: feature
+status: draft
+summary: {{One line — the measurable goal of this unit}}
+tags: [{{feature-tag}}]
+covers: [{{src/...}}]
+updated: {{TODAY}}
+---
+
 # Feature NN: {{Name}}
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 Phase: {{n}} · Depends on: {{features}} · Boundary: {{one system boundary only — backend and UI are separate specs}}
 

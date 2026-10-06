@@ -1,4 +1,17 @@
+---
+title: Library Docs
+type: guide
+status: active
+summary: Project-specific usage, versions, config paths and installed skills/MCPs per third-party library
+tags: [libraries,dependencies,docs]
+updated: {{TODAY}}
+---
+
 # Library Docs
+
+## TL;DR
+
+{{3–5 lines an agent can stop at: the facts that change what it does next.}}
 
 Rule: before using ANY library, check this file for its skill/MCP/docs entry, read that entry, and only then act. Framework versions outrun training data — verify against current docs, never from memory.
 

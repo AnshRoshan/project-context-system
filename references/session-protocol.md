@@ -6,7 +6,9 @@ Human + planning AI = the architect. The coding agent = the implementation engin
 ## Opening a session
 One prompt restores full context:
 
-> Read AGENTS.md. Read the always-on context files and load the task-touched ones per its tiered reading order. Read memory.md. Confirm once you are ready to build Feature NN.
+> Read AGENTS.md. Read context/index.md and memory.md, skim progress-tracker.md. Run `node context/ctx.mjs brief <task files/keywords>` and read only the pages it returns (TL;DR first). Confirm once you are ready to build Feature NN.
+
+v2 note: the old "always read overview + workflow-rules + tracker + memory" set is replaced by routing through `context/index.md` (task → pages) so orientation costs ~2-5k tokens regardless of project size. `workflow-rules.md` and `code-standards.md` are read before any code change; `overview.md` when the task is product-level. A SessionStart hook re-injects this after clear/compact.
 
 ## Skills loop pattern
 The working loop compresses into five named commands, each targeting one failure mode - index them in AGENTS.md's Skills section: **architect** before any complex feature (drift), **remember save/restore** at session boundaries (lost memory), **review** after a build (unreviewed code), **recover** on breakage (broken sessions), **imprint** after UI work (UI chaos: match registry + sweep the whole codebase for UI inconsistencies and produce a fix list). Chain several in one prompt when related ("review it... and remember save what we did").
@@ -79,3 +81,11 @@ Keep prompts short. "Notice just how short that prompt is. No stack explanation,
 
 ## Model choice
 With the context files in place, a cheaper/faster model suffices for implementation - "it doesn't have to do the thinking, it just has to write code". Reserve the top model for architecture and review. The system is tool-agnostic: switch between Claude Code / Codex / Copilot freely; one tool can review and fix code another wrote.
+
+
+## v2 additions to the loop
+- **Orient** via index + memory + `ctx brief`; never scan the repo.
+- **Context-diff** before closing a unit: `ctx impact` (✗ pages updated or confirmed + stamped; UNCOVERED files get a page or a `covers` entry).
+- **Close** with `ctx index` → `ctx lint` → `ctx log build "<unit>"` → memory.md.
+- **Questions** are answered from the wiki (QUERY) and reusable answers are filed back as pages.
+- Playbooks for every operation: `operations.md`. Page spec: `page-format.md`.

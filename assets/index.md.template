@@ -1,0 +1,49 @@
+---
+title: Context Index
+type: overview
+status: active
+summary: Router + catalog — the first context file every session reads; tells you what to read for which task
+updated: {{TODAY}}
+---
+
+# Context Index
+
+The router for this project's knowledge base (an LLM wiki: raw sources → wiki pages → schema in AGENTS.md).
+Read this, `memory.md`, and nothing else until you know what the task is. Every page has a one-line summary below and a `## TL;DR` at its top — **read TL;DR first, open the full page only if it is not enough**.
+
+## Orient (≈ 2–5k tokens total)
+
+1. `AGENTS.md` — rules and invariants (already loaded)
+2. this file — routing + catalog
+3. `memory.md` — current state and the exact next step
+4. `context/progress-tracker.md` — what is in progress / done (skim)
+
+Then run: `node context/ctx.mjs brief <files or keywords of the task>` — it ranks the pages worth reading, with token cost.
+
+## Task routing (hand-maintained — edit to fit this project)
+
+| Task | Read, in this order |
+|---|---|
+| Build a feature unit | `feature-specs/NN-*.md` → `build-plan.md` (position only) → `architecture.md` invariants → module pages that `brief` returns |
+| Fix a bug | `current-issues.md` → module page covering the file (`brief <file>`) → `testing.md` → `decisions.md` (grep the area) |
+| UI work | `ui-rules.md` → `ui-tokens.md` → `ui-registry.md` → `designs/` |
+| Schema / data change | `data-model.md` → `architecture.md` invariants → `decisions.md` → `library-docs.md` (ORM) |
+| API / route change | `api-contracts.md` → module page → `code-standards.md` |
+| Add a dependency or integration | `library-docs.md` → `integrations.md` → `decisions.md` (record the new decision) |
+| Deploy / operate | `runbook.md` → `env-vars.md` |
+| "How does X work?" (question only) | `brief X` → answer from pages. Open code only if a page is stale/low-confidence. File a useful answer back as a page. |
+| Unknown area / first time here | `codebase/map.md` → `brief <keywords>` |
+| New raw source (PRD, notes, vendor docs) | follow INGEST in the skill (`references/operations.md`) |
+
+## Layers
+
+- **Schema** — `AGENTS.md` (+ `CLAUDE.md` wrapper): how to work and maintain this wiki.
+- **Wiki** — everything in `context/` with frontmatter: owned and updated by the agent; humans read, review and overrule.
+- **Raw** — `context/raw/`: immutable source material. Never edited; summarized into `context/sources/`.
+- **Timeline** — `context/log.md` (append-only, greppable: `grep "^## \[" context/log.md | tail -10`).
+
+## Catalog
+
+<!-- ctx:index:start -->
+_Run `node context/ctx.mjs index` to generate the catalog from page frontmatter._
+<!-- ctx:index:end -->

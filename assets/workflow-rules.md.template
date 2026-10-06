@@ -1,4 +1,20 @@
+---
+title: Workflow Rules
+type: standards
+status: active
+summary: How the agent behaves: one unit at a time, stop-and-ask rules, error protocol, recording duties
+tags: [workflow,discipline,process]
+updated: {{TODAY}}
+---
+
 # AI Workflow Rules
+
+## TL;DR
+
+- One unit at a time, inside the spec. Hard calls go to the human, recorded in decisions.md.
+- Record while working (tracker, decisions, issues, wiki pages) — never batch to the end.
+- Orient from the wiki (`index.md` → `memory.md` → `brief`), don't re-explore the repo.
+- Done = verified in the real app + lint/typecheck/build + `ctx impact` clean + memory.md updated.
 
 The discipline layer. These rules govern how the agent behaves, not what it builds. Copy verbatim into every project.
 
@@ -21,8 +37,9 @@ The discipline layer. These rules govern how the agent behaves, not what it buil
 
 ## Recording obligations (while working, not at the end)
 
-- Starting a unit → progress-tracker.md: move to In Progress.
-- Finishing + verifying → progress-tracker.md: move to Complete with concrete details (versions, paths, env var names). States stay mutually exclusive.
+- Starting a unit → `ctx task start NN` (the ledger in progress-tracker.md; one unit In progress at a time).
+- Finishing + verifying → `ctx task done NN -m "concrete details"` (versions, paths, env var names). Blocked → `ctx task block NN "why + what unblocks it"`. States stay mutually exclusive.
+- User-facing behavior of a finished unit → documented in `docs/` (humans read docs/, agents read context/ — link, never duplicate).
 - New UI component → check ui-registry.md for a similar one; match its exact classes, or build to ui-rules/ui-tokens and append it to the registry.
 - After UI work → sweep the codebase for UI inconsistencies against ui-rules/ui-tokens/registry and produce a fix list; do not fix silently.
 - Bug appears → current-issues.md: symptom + suspected file + fix direction + definition of success.
@@ -30,6 +47,19 @@ The discipline layer. These rules govern how the agent behaves, not what it buil
 - End of EVERY session → update memory.md: current state, exact next step, open questions.
 - Feature/phase complete → changelog + PR description generated from the actual diff, not from memory of the work.
 - AGENTS.md grows only when the project makes a real decision worth remembering in every session.
+
+## Context maintenance (the wiki is part of the deliverable)
+
+- **Context-diff rule:** a change to code is not finished until the pages that `cover` it are updated in the same change. Run `node context/ctx.mjs impact`; each ✗ page is edited, or explicitly confirmed unchanged and re-stamped (`ctx stamp <page>`).
+- **Learned something by reading code?** Write it down (`ctx new module <name> --covers "<globs>"`) before the session ends. Knowledge left only in chat is lost knowledge.
+- **Delegate the machinery:** for code maps, symbol lists and dependency graphs, check `ctx tools` first (graphify, ctags, aider, dependency-cruiser). The tool produces, the wiki keeps — distill, never paste raw dumps.
+- **Read cheap, then deep:** index one-liner → `## TL;DR` → full page → source file. Stop at the first level that answers the question.
+- **Trust but verify:** pages with `confidence: inferred|unverified` or listed by `ctx stale` are hypotheses. Check the code, then fix the page.
+- **Conflicts:** page vs code, page vs page, source vs page → flag to the human with both claims; mark the loser `superseded` (+ `superseded_by`) only after the human decides. Never silently overwrite.
+- **Raw is immutable:** never edit `context/raw/`. Ingest it (source summary → affected pages → log).
+- **Keep it small:** a page over ~160 lines gets split; a page nobody needs gets archived (`context/archive/`), not deleted.
+- **No secrets, ever** — env var names only, never values.
+- **Before ending a session:** `ctx impact` → `ctx index` → `ctx lint` → `ctx log` → update memory.md.
 
 ## Error protocol
 
