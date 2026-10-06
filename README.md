@@ -1,117 +1,90 @@
-# project-context-system (v2.2 — LLM-wiki edition)
+# project-context-system
 
-A drop-in skill that makes a software project **knowable from files**. Instead of an AI agent re-reading your codebase every session (slow, expensive, inconsistent), the project keeps a compiled, interlinked markdown wiki — Andrej Karpathy's *LLM Wiki* pattern applied to code — and a tiny CLI that routes every task to the few pages that matter, detects when pages go stale, and makes sure they get updated.
+**The model isn't your bottleneck. Your repo is.** Same model, same prompts — one dev gets a chatbot that re-explores the codebase every session, the other gets an agent that starts each session already knowing the project. The difference is a folder of compiled knowledge. This skill builds that folder, keeps it honest, and never lets it rot.
+
+[![release](https://img.shields.io/github/v/release/AnshRoshan/project-context-system?color=blue)](https://github.com/AnshRoshan/project-context-system/releases)
+[![ci](https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml/badge.svg)](https://github.com/AnshRoshan/project-context-system/actions/workflows/ci.yml)
+[![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)](scripts/ctx.mjs)
+![node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![agents](https://img.shields.io/badge/Claude·Code-Codex·Cursor·Copilot·Gemini·Qoder-lightgrey)](references/multi-agent-interop.md)
+
+Every session, your coding agent re-derives the same facts about the same repo — tokens spent rediscovering what it did last time. **Context is compiled, not retrieved**: this system has the agent *write down* what it learns, once, at change time, into an interlinked markdown wiki (`context/`); future sessions — any tool, any teammate's machine — orient from those files in ~2–5k tokens instead of re-exploring.
 
 ```
 raw (code + context/raw/)  ──►  wiki (context/** pages)  ◄──  schema (AGENTS.md + context/index.md)
-   immutable truth              agent-owned, human-reviewed      how to maintain it
+   immutable truth               agent-owned, human-reviewed      how to maintain it
 ```
 
-Works with Claude Code, Codex, Cursor, Copilot, Gemini CLI, Qoder, Zed… (AGENTS.md is the single source of truth; everything else is a pointer).
+Hooks and lint make it self-enforcing: code changed without updating the pages that describe it **blocks the session from ending**. Documentation is not a chore at the end of a PR — it is part of the diff, checked by tooling.
 
-## Install
-
-**Just have it paste this repo's GitHub link to your agent:**
-
-> Clone `https://github.com/AnshRoshan/project-context-system`, run `node <clone>/scripts/ctx.mjs install` to install it as a skill for my agent tool, then use it to set up this repository.
-
-That's it — `install` auto-detects the tool homes (`~/.claude/skills`, `~/.qoder/skills`; `--tool claude|qoder` or `--dest <dir>` to steer) and ships only the skill itself (SKILL.md + references + assets + scripts).
-
-Manual equivalents:
+## 60-second start
 
 ```bash
-# from a clone
-node <clone>/scripts/ctx.mjs install
+# 1 — install the skill (auto-detects ~/.claude / ~/.qoder; --tool|--dest to steer)
+git clone https://github.com/AnshRoshan/project-context-system
+node project-context-system/scripts/ctx.mjs install
 
-# Claude Code plugin (keeps itself updated via the marketplace)
-/plugin marketplace add AnshRoshan/project-context-system
-/plugin install project-context-system
+# 2 — set up any repo: greenfield or brownfield, any language (run from its root)
+cd your-project && node <skill-dir>/scripts/ctx.mjs setup
 
-# plain copy, any tool that reads skills/*/SKILL.md
-cp -r project-context-system ~/.claude/skills/    # or ~/.qoder/skills/, <project>/.claude/skills/
+# 3 — work. The agent orients, routes, records, and hands off through files.
+node context/ctx.mjs brief src/auth/login.ts   # what to read for this task
+node context/ctx.mjs task start 03             # one unit at a time, enforced
 ```
 
-## This repo vs your project — the boundary
+Or just paste to your agent: *"Clone `https://github.com/AnshRoshan/project-context-system`, install it, then set up this repository."* Setup is **idempotent and upgrade-safe** — re-run `setup` any time; filled content is never clobbered, and after updating the skill it upgrades the project in place.
 
-This repository is the skill's **development home**; nothing about its history belongs in a scaffolded project:
+## What lands in your repo
 
-| Stays in this repo (dev) | Ships to a tool home (skill) | Lands in your project (scaffold) |
-|---|---|---|
-| CHANGELOG, README, INSTALL, tests/, .github, plugin metadata, graphify/dev notes | `SKILL.md`, `references/`, `assets/`, `scripts/ctx.mjs` | `AGENTS.md`, `context/`, `docs/`, `.claude/` — all written by `setup`, about *your* project only |
-
-Enforced, not promised: the CLI copy installed into a project carries no lineage (test-guarded), `ctx install` excludes dev history (test-guarded), and scaffolded pages lint against absolute paths and placeholders. Release ritual: bump `VERSION` + metadata, run `node tests/run.mjs` (47 cases), tag.
-
-## Use
-
-1. Say **"set up the project context system"** (new project) or **"adopt this codebase into a context wiki"** (existing project).
-2. One command does everything mechanical — greenfield or brownfield, idempotent, upgrade-safe. Run it **from your project root** (the only command that ever references anything outside it — after this, everything is relative):
-
-   ```bash
-   cd your-project && node <skill-dir>/scripts/ctx.mjs setup
-   ```
-
-   It detects the stack, scaffolds the whole system, generates path-gated rules and subagent memory, drafts the codebase map from the real file census, and finishes with a 12-point doctor self-check. Re-run it any time (also how you upgrade after updating the skill).
-3. Answer the ~10-minute planning conversation. The agent fills the placeholders from your answers, never guesses.
-4. Work per spec, one fresh session per unit. The agent orients from `context/index.md` + `memory.md` (≈ 2–5k tokens), loads only the pages `ctx brief` returns and the rules `ctx rules <file>` gates open, updates pages as it changes code, and hands off through `memory.md`.
-5. Drop PRDs/notes/vendor docs into `context/raw/` and say "ingest this".
-
-## What you get
-
-```
-AGENTS.md (with a Lessons section that learns from corrections)
-CLAUDE.md(@AGENTS.md)  memory.md  docs/ (human docs)  .claude/settings.json (permissions + hooks)
-.claude/rules/         path-gated conventions — load only when the matching files are touched
-.claude/agents/        context-explorer + context-reviewer, each with persistent memory
-context/
-  index.md        router: task → pages, plus generated catalog (one line per page)
-  log.md          append-only timeline  (## [date] op | title)
-  overview, architecture, build-plan, code-standards, workflow-rules, library-docs,
-  decisions, progress-tracker (the task ledger), current-issues (gitignored)
-  + what your profile fits: ui-* (web/mobile), data-model, api-contracts, env-vars,
-  integrations, runbook, glossary, testing
-  codebase/map.md + codebase/modules/*.md      where things are, contracts, gotchas (`covers:` globs)
-  agents/<name>/MEMORY.md                      subagent experience, version-controlled
-  feature-specs/  raw/ (immutable)  sources/ (summaries)  designs/  screenshots/  archive/
-  .ctx.json       config seeded from the detected stack    ctx.mjs   the CLI
-```
-
-## The CLI in 30 seconds
-
-```bash
-node <skill-dir>/scripts/ctx.mjs setup                   # THE one command, run from the project root: scaffold+rules+map draft+self-check
-node context/ctx.mjs detect                          # what profile does this project have? (langs, kinds, groups)
-node context/ctx.mjs tools                           # code-intel tools to delegate to (graphify, ctags, aider…)
-node context/ctx.mjs brief src/auth/login.ts         # which pages to read (ranked, with token cost + TL;DRs)
-node context/ctx.mjs rules src/auth/login.ts         # which path-gated rules apply to THIS file
-node context/ctx.mjs task add "login flow"           # ledger: add / start / block / done — one unit at a time per branch
-node context/ctx.mjs archive --dry-run               # rotate old log/tracker entries into context/archive/ (growth valve)
-node context/ctx.mjs impact                          # code changed → ✗ pages that need updating
-node context/ctx.mjs stale                           # pages behind the code (git-based)
-node context/ctx.mjs lint                            # structure, links, orphans, tracker, decisions, secrets…
-node context/ctx.mjs doctor                          # is the scaffold wired AND at the current skill version?
-node context/ctx.mjs coverage                        # source files no page documents
-node context/ctx.mjs new module billing --covers "src/billing/**"
-node context/ctx.mjs index --llms                    # regenerate catalog (+ llms.txt)
-node context/ctx.mjs status | log | stamp | hook
-```
-
-Read-only commands take `--json` (`{command, ok, …}`) for scripts and CI.
-
-Hooks (Claude Code): **SessionStart** re-injects orientation (also after compaction); **Stop** blocks ending a session when code changed but the covering pages, tracker or memory weren't updated.
-
-**Teams:** one unit = one branch = one owner; per-unit files keep parallel work conflict-free, `ctx lint` catches merge collisions (duplicate Feature/spec/decision IDs), `ctx archive` keeps the hot files small forever — the playbook is `references/multi-user.md`.
-
-## Layout of this skill
-
-| Path | Purpose |
+| Piece | What it does |
 |---|---|
-| `SKILL.md` | router: modes, bootstrap, core loop, recording table, safety |
-| `references/` | llm-wiki-pattern · page-format · operations · codebase-wiki · tool-delegation · multi-user · prompt-craft (ASD-STE100 for specs & briefs) · context-routing · ctx-cli · evals · multi-agent-interop · plus the v1 deep docs (context-files, session-protocol, recording-workflows, agents-md-rules, architecture-decisions, safety-permissions, claude-code-commands) |
-| `scripts/ctx.mjs` | zero-dependency CLI |
-| `assets/` | templates for every scaffolded file and page type |
+| `AGENTS.md` | the schema every agent reads first — ≤120 lines, routed, with a **Lessons** section that turns each of your corrections into a permanent one-liner |
+| `context/` | the wiki: router index, append-only log, architecture/standards/decisions pages, **codebase map + module pages with `covers:` globs**, feature specs, immutable `raw/` for ingested docs |
+| `context/progress-tracker.md` | the task ledger — In progress (max one) / Blocked / Up next / Completed, moved by `ctx task` |
+| `.claude/rules/` | path-gated conventions: `frontend.md`-style rules load only when an agent touches matching files — zero tokens spent on what doesn't apply |
+| `.claude/agents/` | explorer + reviewer subagents **with their own persistent memory** — agent experience becomes version-controlled |
+| `docs/` | human-facing docs; agents read `context/` — one fact, one home, linked never duplicated |
+| `context/ctx.mjs` | the zero-dependency CLI the project carries forever |
 
-## Lineage
+## Why it holds up
 
-v1 distilled five senior-engineer AI-build courses plus audits against Anthropic docs, agents.md, OpenAI Codex guidance, GitHub Spec Kit and obra/superpowers. v2 adds Karpathy's LLM-Wiki architecture (raw / wiki / schema, ingest / query / lint, index.md / log.md), progressive-disclosure context engineering, git-backed staleness detection, and enforcement tooling. See `CHANGELOG.md`.
+- **Any project, detected not assumed** — `ctx setup` reads manifests (Node, Python, Go, Rust, Java, Ruby, PHP, Dart, Elixir, C++…), classifies the shape (web-app / api / cli / library / mobile / data / monorepo), and scaffolds only what fits. A FastAPI repo gets no Next.js-flavored pages.
+- **Delegates, doesn't hand-roll** — `ctx tools` finds graphify, ctags, aider, dependency-cruiser; the structural pass runs on real code-intelligence, the wiki keeps the distilled result.
+- **Git-backed freshness** — `ctx stale`/`ctx impact` know exactly which pages the last commits invalidated; the Stop hook refuses to end until they agree.
+- **Built for teams** — one unit = one branch = one owner; merge collisions (duplicate task/spec/decision IDs) surface as lint errors, not arguments. `ctx archive` rotates growth out of the hot files. See [references/multi-user.md](references/multi-user.md).
+- **Prompts are products** — specs and subagent briefs follow ASD-STE100 (Simplified Technical English) discipline: one action per sentence, one word one meaning. [references/prompt-craft.md](references/prompt-craft.md).
+- **Proven on itself** — this repo runs its own context system ([context/](context/)), lint 0 errors / 0 warnings; 47 end-to-end tests on ubuntu + macOS + **windows**; CI badge above is live.
 
-MIT-style: copy, adapt, reuse.
+## The CLI
+
+```
+setup · init · detect · tools         one-command scaffold, profile, delegation targets
+brief · rules · coverage · status     route a task to pages; what applies to THIS file
+task add|start|block|done|list        the ledger, one unit at a time
+impact · stale · stamp · lint --fix   keep pages true to code (git-based)
+index · log · new · archive           catalog, timeline, page scaffolds, growth rotation
+doctor · install · hook               wiring checks (12), skill installer, Claude hooks
+```
+
+Read-only commands speak `--json` (`{command, ok}`) for scripts and CI. SessionStart/Stop hooks re-inject orientation (even after compaction) and block silent doc drift.
+
+## The five laws
+
+1. **Decide what to build first** — a line changed in a plan is free; a decision spread through the codebase is a rewrite.
+2. **Make the hard calls on purpose** — every addition gets an explicit cost recorded.
+3. **Keep the state in files** — updated *while* working, enforced by tooling, not goodwill.
+4. **Never let the AI decide something important silently** — conflicts are flagged to the human.
+5. **Read cheap, then deep** — index line → TL;DR → page → source. Stop at the first level that answers.
+
+## Docs
+
+[INSTALL.md](INSTALL.md) · [SKILL.md](SKILL.md) (the method agents follow) · [references/ctx-cli.md](references/ctx-cli.md) (every flag) · [references/operations.md](references/operations.md) (the nine playbooks) · [references/llm-wiki-pattern.md](references/llm-wiki-pattern.md) (the architecture) · [CHANGELOG.md](CHANGELOG.md)
+
+**This repo vs your project:** dev history (CHANGELOG, tests, this README) stays here; `ctx install` ships only the skill; `ctx setup` writes only pages about *your* project — no version chatter, no lineage, test-guarded on both boundaries.
+
+## Lineage & license
+
+v1 distilled five senior-engineer AI-build courses plus audits against Anthropic docs, agents.md, OpenAI Codex guidance, GitHub Spec Kit and obra/superpowers. v2 rebuilt it on Andrej Karpathy's LLM-Wiki pattern (raw / wiki / schema; ingest / query / lint) with progressive-disclosure context engineering, git-backed staleness, and enforcement tooling.
+
+MIT — see [LICENSE](LICENSE). Copy, adapt, reuse.
