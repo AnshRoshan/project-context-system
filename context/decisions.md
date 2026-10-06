@@ -4,15 +4,15 @@ type: decision-log
 status: active
 summary: Every hard technical decision with options, lost alternative, cost and reversibility; plus flagged assumptions
 tags: [decisions,adr,tradeoffs]
-updated: 2026-10-06
-verified_at: 080a7adb7826
+updated: 2026-10-07
+verified_at: 47d649bcfa8c
 ---
 
 # Decisions Log
 
 ## TL;DR
 
-- Four live decisions: D-01 zero-dep CLI, D-02 delegate code-intel but keep the wiki authoritative, D-03 everything project-relative, D-04 three-boundary no-leak model.
+- Five live decisions: D-01 zero-dep CLI, D-02 delegate code-intel but keep the wiki authoritative, D-03 everything project-relative, D-04 three-boundary no-leak model, D-05 ASD-STE100 for emitted prompts.
 - Reversibility: D-01/D-03/D-04 are painful-to-easy policy anchors — changing one needs a new D entry that supersedes it, not an edit.
 
 One entry per hard technical decision, written the moment it is made. Not buried in code, not lost in chat — written down where the human can see it and overrule it.
@@ -31,6 +31,8 @@ Cost paid: new moving part / per-request latency / tolerated incorrectness / mon
 Reversibility: easy | painful (what a rollback costs)
 Correctness policy: what is now ALLOWED to be slightly wrong (and what never is)
 ```
+
+---
 
 ---
 
@@ -82,3 +84,13 @@ Lost alternative: separate repos — honest reason: two places to keep in sync, 
 Cost paid: the SHIP list must be remembered when adding shippable files; three extra tests.
 Reversibility: easy.
 Correctness policy: README/CHANGELOG may lag a release by hours; shipped files must never carry dev history at all.
+
+## D-05: ASD-STE100 discipline for emitted prompts — 2026-10-06
+
+Trigger: specs, subagent briefs and clarify questions ARE prompts; misread instructions ship wrong features; the aerospace documentation standard (issue 100) demonstrably reduces LLM ambiguity-guessing.
+Options considered: free prose specs / ad-hoc "be clear" advice / adopt STE100's concrete grammar rules as a reference + template wiring.
+Chosen: references/prompt-craft.md (8 rules with bad/good examples), inline note in the feature-spec template, PLAN-step and workflow-rules pointers — because concrete, checkable writing rules change behavior where "be clear" does not.
+Lost alternative: lint-enforcing sentence length/imperative mood — honest reason: style linting markdown prose produces noise and churn; scope rule says new/edited text only, judged at review.
+Cost paid: one more reference to read when writing specs; writers spend a few more seconds per sentence.
+Reversibility: easy — it is a reference + two template lines.
+Correctness policy: existing pages may keep legacy prose; new specs and briefs must follow the rules; a stylistic miss is not a defect.

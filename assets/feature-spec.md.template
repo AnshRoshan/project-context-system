@@ -24,6 +24,8 @@ Phase: {{n}} · Depends on: {{features}} · Boundary: {{one system boundary only
 
 {{Exact behavior, screens, data touched. For UI specs: reference context/designs/{{page}}.png and match it — do not invent.}}
 
+{{Write this section in ASD-STE100 style (skill references/prompt-craft.md): imperative, one action per sentence, one word one meaning, exact numbers and units, acceptance checks phrased as observable results.}}
+
 ## Explicitly NOT in this spec
 
 {{"do NOT add real {{auth / canvas logic / sharing / AI chat}} yet" — hard boundaries, one per unrelated concern.}}

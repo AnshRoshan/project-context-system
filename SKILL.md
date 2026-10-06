@@ -48,7 +48,7 @@ Architecture (details: `references/llm-wiki-pattern.md`): **Raw** (code + `conte
 ## Core loop (RUN)
 
 1. **ORIENT** (≈2–5k tokens): `AGENTS.md` (incl. its Lessons) → `context/index.md` → `memory.md` → tracker skim → `ctx brief <files/keywords>` → TL;DRs; touching a file? `ctx rules <file>` for its path-gated conventions. Don't scan the repo.
-2. **PLAN**: spec in `context/feature-specs/NN-*.md` (`ctx new feature <name>`); ledger entry `ctx task add "<unit>"`; clarify gate (≤5 questions, one at a time, answers written into the spec); value-source gate; plan saved; human reviews 5–10 min and rejects weak plans.
+2. **PLAN**: spec in `context/feature-specs/NN-*.md` (`ctx new feature <name>`); ledger entry `ctx task add "<unit>"`; clarify gate (≤5 questions, one at a time, answers written into the spec); value-source gate; spec instructions follow `prompt-craft.md` (ASD-STE100); plan saved; human reviews 5–10 min and rejects weak plans.
 3. **BUILD** in scope: `ctx task start NN` (one unit at a time — the CLI enforces it); one boundary per unit (backend and UI are separate specs); UI first with mock data, logic second; logic ships its failing test first.
 4. **RECORD while working** (table below).
 5. **CONTEXT-DIFF**: `ctx impact` → fix every ✗ page and UNCOVERED file → `ctx stamp`.
@@ -118,6 +118,7 @@ Tool-specific pointer files (`GEMINI.md`, Copilot, Cursor) only import AGENTS.md
 | `references/llm-wiki-pattern.md` | understanding/explaining the architecture; Karpathy mapping; failure modes |
 | `references/page-format.md` | writing or reviewing any page (frontmatter spec, types, rules) |
 | `references/operations.md` | executing ORIENT/QUERY/BUILD/INGEST/ADOPT/LINT/SYNC/HANDOFF/COMPACT |
+| `references/prompt-craft.md` | writing any prompt the system emits — specs, subagent briefs, clarify questions, Lessons (ASD-STE100 discipline: one action per sentence, one word one meaning) |
 | `references/codebase-wiki.md` | adopting an existing repo; writing map/module pages |
 | `references/tool-delegation.md` | **before hand-building a code map/symbol/dependency view** — what to delegate to (graphify, ctags, aider, dependency-cruiser) and how to distill its output |
 | `references/context-routing.md` | token budgets, `brief` ranking, scaling past ~150 pages |

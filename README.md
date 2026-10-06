@@ -106,7 +106,7 @@ Hooks (Claude Code): **SessionStart** re-injects orientation (also after compact
 | Path | Purpose |
 |---|---|
 | `SKILL.md` | router: modes, bootstrap, core loop, recording table, safety |
-| `references/` | llm-wiki-pattern · page-format · operations · codebase-wiki · tool-delegation · multi-user · context-routing · ctx-cli · evals · multi-agent-interop · plus the v1 deep docs (context-files, session-protocol, recording-workflows, agents-md-rules, architecture-decisions, safety-permissions, claude-code-commands) |
+| `references/` | llm-wiki-pattern · page-format · operations · codebase-wiki · tool-delegation · multi-user · prompt-craft (ASD-STE100 for specs & briefs) · context-routing · ctx-cli · evals · multi-agent-interop · plus the v1 deep docs (context-files, session-protocol, recording-workflows, agents-md-rules, architecture-decisions, safety-permissions, claude-code-commands) |
 | `scripts/ctx.mjs` | zero-dependency CLI |
 | `assets/` | templates for every scaffolded file and page type |
 

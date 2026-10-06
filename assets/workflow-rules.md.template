@@ -88,6 +88,7 @@ The discipline layer. These rules govern how the agent behaves, not what it buil
 - Load context tiered (AGENTS.md reading order): always-read set first, the rest just-in-time. Never preload the whole folder.
 - When compacting, always preserve: the current unit, the full list of modified files, test/build commands, and open questions.
 - Keep prompts short — the context files carry stack, folders, and rules.
+- Write prompts (specs, subagent briefs, questions) in ASD-STE100 style: imperative, one action per sentence, one word one meaning, exact numbers. A misread instruction is a defect in the text, not the reader (skill references/prompt-craft.md).
 - Research that the main thread doesn't need to carry: delegate to read-only subagents ("return current behavior, relevant files, constraints, recommended approach — do not implement").
 - Secrets never enter chat. Env values are human-managed; reference only variable names.
 - Before using any third-party library: check library-docs.md for its skill/MCP docs, read them, only then act.

@@ -1,5 +1,10 @@
 # Changelog
 
+## v2.4.1 — prompt craft: ASD-STE100 inside the system
+
+- **`references/prompt-craft.md`**: the aerospace Simplified Technical English standard (ASD-STE100) adapted for LLM readers — one action per sentence, one word one meaning, named actors, exact numbers, results not negations, logical order = execution order. Applied to the prompts the system emits: feature specs, subagent briefs, clarify questions, Lessons, TL;DRs.
+- Wired in: feature-spec template carries the discipline inline; SKILL.md PLAN step + references table; workflow-rules session bullet. Scope rule: new/edited text only — no mass rewrites.
+
 ## v2.4 — self-installing from a link, repo/skill boundary made explicit
 
 **Added**

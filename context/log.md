@@ -20,3 +20,6 @@ Initial scaffold created. Placeholders to be filled from the planning conversati
 
 ## [2026-10-06] build | dogfood: this repo now runs its own context system
 setup + filled wiki; detect word-boundary fix
+
+## [2026-10-06] decision | D-05 ASD-STE100 prompt craft
+pages: references/prompt-craft.md (new), feature-spec template, workflow-rules, SKILL.md

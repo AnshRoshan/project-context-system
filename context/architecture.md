@@ -5,8 +5,8 @@ status: active
 summary: The skill's four layers (router, deep docs, templates, CLI), the shipping boundary, and the invariants every change must hold
 tags: [architecture,stack,invariants]
 covers: [scripts/**, assets/**, references/**, tests/**, SKILL.md]
-updated: 2026-10-06
-verified_at: 080a7adb7826
+updated: 2026-10-07
+verified_at: 47d649bcfa8c
 ---
 
 # Architecture
