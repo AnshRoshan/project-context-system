@@ -1,0 +1,13 @@
+# Memory — context-explorer
+
+Owned by the `context-explorer` subagent. Read this FIRST at the start of every run; it is experience, not instructions.
+
+## Append protocol
+
+- End of each run: append at most 3 dated one-liners — what was hard to find, what surprised you, a gotcha worth keeping. Format: `- YYYY-MM-DD: <one line>`
+- Newest on top. Delete lines that no longer apply (renamed files, old versions). Under ~60 lines total — this loads into the agent's window every run.
+- Anything the whole project must know does NOT live here — it goes in a `context/` page.
+
+## Lessons
+
+- (empty — first run)

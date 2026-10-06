@@ -1,0 +1,45 @@
+{
+  "setupVersion": "2.4.0",
+  "profile": {
+    "langs": [
+      "node"
+    ],
+    "kinds": [
+      "cli",
+      "library"
+    ]
+  },
+  "maxPageLines": 160,
+  "maxAgentsLines": 120,
+  "maxSummaryChars": 160,
+  "alwaysRead": [
+    "context/index.md",
+    "memory.md"
+  ],
+  "sourceExt": [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".vue",
+    ".svelte",
+    ".sql",
+    ".prisma",
+    ".proto",
+    ".graphql",
+    ".tf",
+    ".sh",
+    ".html",
+    ".css",
+    ".scss"
+  ],
+  "ignoreSourceGlobs": [
+    "**/*.d.ts",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
+    "**/*.config.*"
+  ]
+}

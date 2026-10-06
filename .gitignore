@@ -1,0 +1,12 @@
+
+# project-context-system
+.env
+.env.*
+!.env.example
+context/current-issues.md
+CLAUDE.local.md
+.claude/settings.local.json
+node_modules/
+dist/
+.next/
+build/
