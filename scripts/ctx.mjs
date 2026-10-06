@@ -471,9 +471,8 @@ commands.tools = () => {
   });
 };
 
-/* ---- install — the skill's own installer: point it at a GitHub clone and the skill
-   lands in the right tools folder. Only the shippable parts go; repo dev history
-   (CHANGELOG, tests, repo README) stays in the repo. */
+/* ---- install — copies this skill package into an agent tool's skills folder.
+   Run it from a clone of the skill; only the shippable parts go. */
 const TOOL_HOMES = { claude: ['.claude', 'skills'], qoder: ['.qoder', 'skills'] };
 const SHIP = ['SKILL.md', 'references', 'assets', 'scripts'];
 function copyTree(src, dst) {

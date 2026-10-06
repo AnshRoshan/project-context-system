@@ -553,7 +553,7 @@ test('archive rotates old log and tracker entries without deleting history', (di
   const fresh = new Date().toISOString().slice(0, 10);
   fs.writeFileSync(lp, fs.readFileSync(lp, 'utf8') + `\n## [2025-01-05] build | ancient unit\nnote one\n\n## [${fresh}] build | fresh unit\n`);
   const tr = path.join(dir, 'context', 'progress-tracker.md');
-  fs.writeFileSync(tr, fs.readFileSync(tr, 'utf8').replace('## Completed\n', '## Completed\n\n- Feature 01: old thing — 2025-01-05 — details here\n'));
+  fs.writeFileSync(tr, fs.readFileSync(tr, 'utf8').replace(/\r\n/g, '\n').replace('## Completed\n', '## Completed\n\n- Feature 01: old thing — 2025-01-05 — details here\n'));
   const r = ctx(dir, 'archive');
   assertContains(r.out, 'log: 1 entr');
   assertContains(r.out, 'tracker: 1 old completion');
@@ -570,7 +570,7 @@ test('archive rotates old log and tracker entries without deleting history', (di
 test('lint catches branch-merge ID collisions in the tracker', (dir) => {
   initRepo(dir);
   const tr = path.join(dir, 'context', 'progress-tracker.md');
-  fs.writeFileSync(tr, fs.readFileSync(tr, 'utf8').replace('## Up next\n', '## Up next\n\n- Feature 04: branch A unit\n- Feature 04: branch B unit\n'));
+  fs.writeFileSync(tr, fs.readFileSync(tr, 'utf8').replace(/\r\n/g, '\n').replace('## Up next\n', '## Up next\n\n- Feature 04: branch A unit\n- Feature 04: branch B unit\n'));
   const r = ctx(dir, 'lint');
   assert(r.code !== 0 && /listed twice/.test(r.out), `duplicate Feature id in one section must error:\n${r.out}`);
 });
@@ -586,6 +586,7 @@ test('the CLI copy shipped into a project carries no skill lineage', (dir) => {
   initRepo(dir);
   const t = fs.readFileSync(path.join(dir, 'context', 'ctx.mjs'), 'utf8');
   assert(!/karpathy/i.test(t), 'attribution leaked into the project copy');
+  assert(!/CHANGELOG|dogfood|aisdlc/i.test(t), 'repo dev narrative leaked into the project copy');
   assert(!/^\s*\*\s.*\(v\d/m.test(t.split('\n').slice(0, 15).join('\n')), 'version chatter in the copied header');
 });
 

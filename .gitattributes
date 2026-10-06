@@ -1,0 +1,7 @@
+# The CLI and its tests must be byte-stable across platforms: templates are copied
+# verbatim into user projects, and tests do exact-string surgery on them.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
